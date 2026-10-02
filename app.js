@@ -50,6 +50,15 @@
     evening: ["The evening feels cosy, doesn't it?", 'Evening cuddles, please.'],
     night: ['The stars are out. Sleepy bunny time soon.', 'Night night, sweet dreams.']
   };
+  /* ----- PROGRESS LINES: the little moments at a quarter, half and three quarters of the day's goal
+     (once a day each, lighter than the goal moments). ----- */
+  const PROGRESS_LINES = {
+    q25: ['A quarter of the way. Nibble nibble!', 'One little quarter, all done.'],
+    q50: ['Halfway there! My ears are perking up.', 'Half a ring, and I am all smiles.'],
+    q75: ['Three quarters! Nearly time to wiggle.', 'So close to my happy wiggle.']
+  };
+  /* Said once, on an evening (from 8 pm) when the day has entries and no note yet; never twice a day. */
+  const NOTE_NUDGE = 'Want to jot down how today felt?';
   /* Said now and then right after one of these was logged (matched on the food's name). */
   const FOOD_LINES = [
     ['roti', 'Warm roti is my favourite smell.'], ['milk', 'Milk moustache! Do I have one too?'], ['fish', 'Fish! How fancy of us.'],
@@ -86,7 +95,10 @@
   })();
 
   /* ================= state ================= */
-  let data = L.normalize(Store.read());
+  /* Stored data is repaired, then migrated from the schema it was saved under (v1.1.1 phones hold schema 2). */
+  const stored = Store.read();
+  const storedSchema = stored && stored.meta ? stored.meta.schema : undefined;
+  let data = L.migrate(L.normalize(stored), storedSchema);
   let today = L.dateKey(new Date());
   let viewDate = today;
   let tab = 'today';
@@ -113,64 +125,121 @@
   }
 
   /* ================= mascot ================= */
-  /* Elyana, a baby bunny. All of her artwork is in this one function: swap the drawing here and
-     nothing else changes. mood: sleepy | smiling | happy | sparkly. */
-  function elyanaSvg(mood) {
-    const pink = '#F9D6DC', deep = '#F3AEBC', cream = '#FFF7EE', line = '#8A6857', eye = '#4B332B', blush = '#F5A3B4', nose = '#D9768C', gold = '#E2B45A';
-    const st = 'stroke="' + line + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+  /* Elyana, a baby bunny (redrawn for v1.2: softer, rounder, bigger eyes, a little tilt and a wave).
+     All of her artwork is in these three functions. mood: sleepy | smiling | happy | sparkly.
+     acc: what she wears ('' | bow | scarf | star | crown | hat). crop 'head': her head and neck, for
+     the dress-up thumbnails; crop 'face': her head alone, for the home-screen icon. */
+  function elyanaSvg(mood, acc, crop) {
+    const headOnly = crop === 'head' || crop === 'face';
+    const pink = '#F9D9DF', deep = '#F2B3C1', cream = '#FFF8F0', line = '#A47F6E', eye = '#4A3129', blush = '#F6A9B9', nose = '#DE8296', gold = '#E3B65E';
+    const sw = 1.6;
+    const st = 'stroke="' + line + '" stroke-width="' + sw + '" stroke-linejoin="round" stroke-linecap="round"';
     const heart = (x, y, s, fill) => '<path transform="translate(' + x + ' ' + y + ') scale(' + s + ')" d="M0 3.4C-7-1.8-3.4-7.4 0-3.4 3.4-7.4 7-1.8 0 3.4Z" fill="' + fill + '"/>';
-    const star = (x, y, s) => '<path transform="translate(' + x + ' ' + y + ') scale(' + s + ')" d="M0-6Q.9-.9 6 0 .9.9 0 6-.9.9-6 0-.9-.9 0-6Z" fill="' + gold + '"/>';
+    const star = (x, y, s, fill) => '<path transform="translate(' + x + ' ' + y + ') scale(' + s + ')" d="M0-6Q.9-.9 6 0 .9.9 0 6-.9.9-6 0-.9-.9 0-6Z" fill="' + (fill || gold) + '"/>';
     const sleepy = mood === 'sleepy';
     let eyes, mouth, extra = '';
     if (sleepy) {
-      eyes = '<path d="M51 83q8.5 6 17 0M92 83q8.5 6 17 0" fill="none" ' + st + '/>';
-      mouth = '<path d="M76.5 93.5q3.5 3 7 0" fill="none" stroke="' + line + '" stroke-width="2" stroke-linecap="round"/>';
-      extra = '<g fill="none" stroke="' + line + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".7"><path d="M128 40h8l-8 9h8"/><path d="M141 24h5.5l-5.5 6.5h5.5"/></g>';
+      eyes = '<path d="M55 86.5q8 6.5 16 0M89 86.5q8 6.5 16 0" fill="none" ' + st + ' stroke-width="1.9"/>' +
+        '<path d="M55.5 87l-2.6 1.6M104.5 87l2.6 1.6" fill="none" ' + st + ' stroke-width="1.4"/>';
+      mouth = '<path d="M76.5 100.5q3.5 2.6 7 0" fill="none" ' + st + '/>';
+      extra = '<g fill="none" stroke="' + line + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".6"><path d="M126 46h7l-7 8h7"/><path d="M138 30h5l-5 6h5"/></g>';
     } else if (mood === 'happy') {
-      eyes = '<path d="M51 84q8.5-10 17 0M92 84q8.5-10 17 0" fill="none" ' + st + '/>';
-      mouth = '<path d="M74 92.5q6 9 12 0Z" fill="' + nose + '" stroke="' + line + '" stroke-width="2" stroke-linejoin="round"/>';
-      extra = '<g class="ely-float">' + heart(22, 52, 1.3, nose) + heart(140, 44, 1, blush) + heart(128, 18, .750, nose) + '</g>';
+      eyes = '<path d="M55 89q8-10.5 16 0M89 89q8-10.5 16 0" fill="none" ' + st + ' stroke-width="2.1"/>';
+      mouth = '<path d="M74.5 98.5q5.5 1.6 11 0q-1 6.5-5.5 6.5t-5.5-6.5Z" fill="' + nose + '" ' + st + ' stroke-width="1.4"/>';
+      extra = '<g class="ely-float">' + heart(24, 58, 1.25, nose) + heart(138, 50, 1, blush) + heart(126, 24, .75, nose) + '</g>';
     } else {
       const big = mood === 'sparkly';
-      const rx = big ? 9.5 : 8.5, ry = big ? 11 : 10;
-      eyes = [60, 100].map((x) => '<ellipse cx="' + x + '" cy="82" rx="' + rx + '" ry="' + ry + '" fill="' + eye + '"/>' +
-        '<ellipse cx="' + x + '" cy="85.5" rx="' + (rx - 3) + '" ry="' + (ry - 5.5) + '" fill="#8A5F4E" opacity=".55"/>' +
-        '<circle cx="' + (x + 3) + '" cy="' + (big ? 76.5 : 77) + '" r="' + (big ? 3.8 : 3.3) + '" fill="#fff"/>' +
-        '<circle cx="' + (x - 3.5) + '" cy="85.5" r="1.6" fill="#fff"/>' +
-        (big ? '<path transform="translate(' + (x - 3) + ' 78) scale(.42)" d="M0-6Q.9-.9 6 0 .9.9 0 6-.9.9-6 0-.9-.9 0-6Z" fill="#fff"/>' : '')).join('');
+      const rx = big ? 10.5 : 9.8, ry = big ? 12 : 11.2;
+      eyes = [63, 97].map((x) =>
+        '<path d="' + (x < 80 ? 'M' + (x - rx + 1.6) + ' 80.6q-2.2-.4-3.6-2.6' : 'M' + (x + rx - 1.6) + ' 80.6q2.2-.4 3.6-2.6') + '" fill="none" ' + st + ' stroke-width="1.4"/>' +
+        '<ellipse cx="' + x + '" cy="86" rx="' + rx + '" ry="' + ry + '" fill="' + eye + '"/>' +
+        '<ellipse cx="' + x + '" cy="' + (90.5) + '" rx="' + (rx - 3.4) + '" ry="' + (ry - 6.2) + '" fill="#7E5646" opacity=".7"/>' +
+        '<circle cx="' + (x + 3.4) + '" cy="' + (big ? 80.5 : 81) + '" r="' + (big ? 4.6 : 4.2) + '" fill="#fff"/>' +
+        '<circle cx="' + (x - 3.8) + '" cy="91" r="2" fill="#fff"/>' +
+        (big ? star(x - 3.6, 82, .5, '#fff') + star(x + 4.8, 92, .32, '#fff') : '<circle cx="' + (x + 4.6) + '" cy="91.6" r=".9" fill="#fff"/>')).join('');
       mouth = big
-        ? '<path d="M74.5 92.5q5.5 8 11 0Z" fill="' + nose + '" stroke="' + line + '" stroke-width="2" stroke-linejoin="round"/>'
-        : '<path d="M80 91q-3.5 4.5-8 1.5M80 91q3.5 4.5 8 1.5" fill="none" stroke="' + line + '" stroke-width="2" stroke-linecap="round"/>';
-      if (big) extra = '<g class="ely-float">' + star(20, 46, 1.5) + star(142, 50, 1.2) + star(132, 16, .900) + star(34, 18, .700) + heart(24, 86, .700, nose) + '</g>';
+        ? '<path d="M74.5 99q5.5 1.6 11 0q-1 7-5.5 7t-5.5-7Z" fill="' + nose + '" ' + st + ' stroke-width="1.4"/>'
+        : '<path d="M80 98.6q-2.4 3.6-6 1.6M80 98.6q2.4 3.6 6 1.6" fill="none" ' + st + ' stroke-width="1.5"/>';
+      if (big) extra = '<g class="ely-float">' + star(22, 52, 1.5) + star(140, 56, 1.2) + star(132, 20, .9) + star(30, 22, .7) + heart(22, 92, .7, nose) + '</g>';
     }
-    /* arm on her left (our right): waving unless she is asleep */
-    const wave = sleepy
-      ? ''
-      : '<g class="ely-wave"><ellipse cx="119" cy="104" rx="7.5" ry="13.5" transform="rotate(40 119 104)" fill="' + pink + '" ' + st + '/></g>' +
-        '<path d="M137 84l4-5.5M142 94l6.5-2.5" fill="none" stroke="' + line + '" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>';
+    /* waving paw on her left (our right), unless she is asleep */
+    const wave = sleepy ? '' :
+      '<g class="ely-wave"><ellipse cx="104.5" cy="120" rx="7" ry="10.5" transform="rotate(34 104.5 120)" fill="' + pink + '" ' + st + '/>' +
+      '<path d="M106.8 112.4q2.4-.2 3.6 1.6" fill="none" stroke="' + deep + '" stroke-width="1.5" stroke-linecap="round"/></g>' +
+      '<path d="M120 104l3.4-4.4M123.5 113l5.4-1.4" fill="none" stroke="' + line + '" stroke-width="1.4" stroke-linecap="round" opacity=".45"/>';
     const lower = sleepy
-      /* tucked under a soft blanket */
-      ? '<path d="M45 129q9-6 17.5-1t17.5 0 17.5 0 17.5 1q7 13 1 25-6 9-19 9H63q-13 0-19-9-6-12 1-25Z" fill="#F7E3D8" ' + st + '/>' +
-        '<g fill="' + deep + '"><circle cx="60" cy="143" r="1.8"/><circle cx="80" cy="149" r="1.8"/><circle cx="100" cy="143" r="1.8"/><circle cx="70" cy="155" r="1.8"/><circle cx="91" cy="156" r="1.8"/></g>'
-      : '<ellipse cx="66" cy="158" rx="11.5" ry="6.5" fill="' + pink + '" ' + st + '/><ellipse cx="94" cy="158" rx="11.5" ry="6.5" fill="' + pink + '" ' + st + '/>';
-    return '<svg class="ely-svg" viewBox="0 0 160 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elyana the baby bunny">' +
-      /* fluffy tail */
-      '<path d="M107 134a6.5 6.5 0 0 1 10-5 6.5 6.5 0 0 1 9 6 6.5 6.5 0 0 1-2 11 6.5 6.5 0 0 1-11 1 6.5 6.5 0 0 1-6-13Z" fill="' + cream + '" ' + st + '/>' +
-      /* ears */
-      '<path d="M60 52C46 34 42 10 53 5c11-4 19 18 21 42Z" fill="' + pink + '" ' + st + '/><path d="M60 42C53 30 50 16 55 13c5-2 9 12 11 27Z" fill="' + deep + '"/>' +
-      '<path d="M87 46c3-24 14-44 24-38 9 6 1 30-11 45Z" fill="' + pink + '" ' + st + '/><path d="M94 40c2-14 8-25 13-22 4 3 0 16-6 25Z" fill="' + deep + '"/>' +
-      /* body, tummy */
-      '<ellipse cx="80" cy="132" rx="27" ry="27" fill="' + pink + '" ' + st + '/><ellipse cx="80" cy="137" rx="16" ry="18" fill="' + cream + '"/>' +
-      (sleepy ? '' : '<ellipse cx="54" cy="126" rx="7.5" ry="11.5" transform="rotate(22 54 126)" fill="' + pink + '" ' + st + '/>') +
-      lower +
-      wave +
-      /* big head */
-      '<ellipse cx="80" cy="78" rx="45" ry="37" fill="' + pink + '" ' + st + '/>' +
-      '<ellipse cx="80" cy="93" rx="17" ry="11.5" fill="' + cream + '"/>' +
-      '<ellipse cx="44" cy="95" rx="8.5" ry="5" fill="' + blush + '" opacity=".8"/><ellipse cx="116" cy="95" rx="8.5" ry="5" fill="' + blush + '" opacity=".8"/>' +
+      ? '<path d="M50 133q8-5.5 15.5-1t15.5 0 15.5 0 15.5 1q6 11 .8 21.5-5 7.5-16.5 7.5H66q-11.5 0-16.5-7.5-5-10.5.5-21.5Z" fill="#F7E4DA" ' + st + '/>' +
+        '<g fill="' + deep + '"><circle cx="63" cy="145" r="1.6"/><circle cx="80" cy="150" r="1.6"/><circle cx="97" cy="145" r="1.6"/><circle cx="71" cy="156" r="1.6"/><circle cx="89" cy="156" r="1.6"/></g>'
+      : '<ellipse cx="69.5" cy="157.5" rx="9.5" ry="5.6" fill="' + pink + '" ' + st + '/><ellipse cx="90.5" cy="157.5" rx="9.5" ry="5.6" fill="' + pink + '" ' + st + '/>' +
+        '<ellipse cx="69.5" cy="158.2" rx="3.2" ry="2" fill="' + deep + '"/><ellipse cx="90.5" cy="158.2" rx="3.2" ry="2" fill="' + deep + '"/>';
+    const earL = sleepy ? 'rotate(-14 64 56)' : 'rotate(-6 64 56)';
+    const earR = sleepy ? 'rotate(16 96 56)' : 'rotate(10 96 56)';
+    const head =
+      /* ears: the left one up, the right one with a soft fold */
+      '<g transform="' + earL + '"><g class="ely-ear ely-ear-l"><path d="M58 58C49 42 45 20 52 11c6-7 15 3 18 17 2 10 2 20 1 28Z" fill="' + pink + '" ' + st + '/><path d="M60 50c-5-11-7-25-4-30 4-4 8 5 10 14 1 6 1 12 0 17Z" fill="' + deep + '"/></g></g>' +
+      '<g transform="' + earR + '"><g class="ely-ear ely-ear-r"><path d="M89 56c0-9 1-19 5-27 4-9 12-14 17-9 3 3 2 9-1 15l-5 9c-3 5-6 10-8 16Z" fill="' + pink + '" ' + st + '/><path d="M94 50c1-8 3-16 6-21 3-5 7-6 8-3 1 2-1 6-3 10l-4 7Z" fill="' + deep + '"/>' +
+      '</g></g>' +
+      /* round head with chubby cheeks */
+      '<path d="M80 44.5C102.5 44.5 118 60 119 81c.6 12.4-4.4 22.4-13.4 28C98 114.2 89.6 116 80 116s-18-1.8-25.6-7C45.4 103.4 40.4 93.4 41 81 42 60 57.5 44.5 80 44.5Z" fill="' + pink + '" ' + st + '/>' +
+      '<ellipse cx="80" cy="102" rx="13" ry="8.6" fill="' + cream + '"/>' +
+      '<ellipse cx="52.5" cy="99" rx="7.4" ry="4.8" fill="' + blush + '" opacity=".75"/><ellipse cx="107.5" cy="99" rx="7.4" ry="4.8" fill="' + blush + '" opacity=".75"/>' +
       eyes +
-      '<ellipse cx="80" cy="88.5" rx="3.3" ry="2.4" fill="' + nose + '"/>' + mouth +
-      extra + '</svg>';
+      '<path d="M77.4 95.2c0-1.4 1.2-2 2.6-2s2.6.6 2.6 2c0 1.2-1.4 2.2-2.6 2.6-1.2-.4-2.6-1.4-2.6-2.6Z" fill="' + nose + '"/>' + mouth +
+      elyAccHead(acc, line);
+    const svgOpen = '<svg class="ely-svg' + (headOnly ? ' ely-cropped' : '') + '" viewBox="' + (crop === 'face' ? '30 4 100 116' : headOnly ? '28 6 104 124' : '12 4 136 162') + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elyana the baby bunny">';
+    if (crop === 'face') return svgOpen + '<g class="ely-head" transform="rotate(-5 80 112)"><g class="ely-bob">' + head + '</g></g></svg>';
+    return svgOpen +
+      /* fluffy tail */
+      '<path d="M101 140a6 6 0 0 1 9-4.5 6 6 0 0 1 8.4 5.4 6 6 0 0 1-1.8 10 6 6 0 0 1-10 1 6 6 0 0 1-5.6-11.9Z" fill="' + cream + '" ' + st + '/>' +
+      /* small body and tummy */
+      '<ellipse cx="80" cy="138" rx="22" ry="21" fill="' + pink + '" ' + st + '/><ellipse cx="80" cy="142" rx="13" ry="14" fill="' + cream + '"/>' +
+      (sleepy ? '' : '<ellipse cx="64.5" cy="134" rx="5.6" ry="8.4" transform="rotate(-22 64.5 134)" fill="' + pink + '" ' + st + '/>') +
+      elyAccNeck(acc, line) +
+      lower + (headOnly ? '' : wave) +
+      '<g class="ely-head" transform="rotate(-5 80 112)"><g class="ely-bob">' + head + '</g></g>' + (headOnly ? '' : extra) + '</svg>';
+  }
+  /* Her accessories, drawn in the same soft line art. On the head (follows its tilt): bow, crown, star, hat.
+     Around the neck: scarf (drawn under the blanket when she is asleep). */
+  function elyAccHead(acc, line) {
+    const c = { line: line };
+    const o = 'stroke="' + line + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"';
+    if (acc === 'bow') {
+      return '<g class="acc acc-bow" transform="rotate(-18 58 53)">' +
+        '<path d="M58 53c-4.6-6.4-12.4-7.4-13-2-.5 4.6 6.6 6.2 13 2Z" fill="#E79AAE" ' + o + '/>' +
+        '<path d="M58 53c4.6-6.4 12.4-7.4 13-2 .5 4.6-6.6 6.2-13 2Z" fill="#E79AAE" ' + o + '/>' +
+        '<path d="M56.6 54.6l-3.4 6.2M59.4 54.6l3 6" fill="none" ' + o + '/>' +
+        '<path d="M48.8 50.6q2.6.2 4.4 1.6M67.2 50.6q-2.6.2-4.4 1.6" fill="none" stroke="#C9768C" stroke-width="1" stroke-linecap="round"/>' +
+        '<ellipse cx="58" cy="53" rx="2.8" ry="2.6" fill="#DE8296" ' + o + '/></g>';
+    }
+    if (acc === 'crown') {
+      const flower = (x, y, fill, r) => '<g transform="translate(' + x + ' ' + y + ')">' + [0, 72, 144, 216, 288].map((a) =>
+        '<circle cx="' + (Math.sin(a * Math.PI / 180) * r * 1.05).toFixed(2) + '" cy="' + (-Math.cos(a * Math.PI / 180) * r * 1.05).toFixed(2) + '" r="' + r + '" fill="' + fill + '" stroke="' + c.line + '" stroke-width=".9"/>').join('') +
+        '<circle r="' + (r * .78).toFixed(2) + '" fill="#F3D27A" stroke="' + c.line + '" stroke-width=".8"/></g>';
+      const leaf = (x, y, rot) => '<path transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')" d="M0 0q3-3.6 6.4 0-3.4 3.6-6.4 0Z" fill="#B9D3B0" stroke="' + c.line + '" stroke-width=".9"/>';
+      return '<g class="acc acc-crown"><path d="M51 59.5Q80 41 109 59.5" fill="none" stroke="#9CBF92" stroke-width="1.6" stroke-linecap="round"/>' +
+        leaf(56, 55, -40) + leaf(73, 47.5, -12) + leaf(90, 47.6, 196) + leaf(104, 55.6, 222) +
+        flower(52.5, 57.6, '#F7C6D2', 2.4) + flower(65, 50.2, '#E4DBF3', 2.6) + flower(80, 47.4, '#FFF4F6', 2.8) + flower(95, 50.2, '#F7C6D2', 2.6) + flower(107.5, 57.6, '#E4DBF3', 2.4) + '</g>';
+    }
+    if (acc === 'star') {
+      return '<g class="acc acc-star" transform="translate(101 54) rotate(14)"><path d="M0-7.4 2.2-2.4 7.4-1.8 3.4 1.8 4.6 7 0 4.4-4.6 7-3.4 1.8-7.4-1.8-2.2-2.4Z" fill="#F1CF7E" ' + o + '/>' +
+        '<path d="M-1.4-2.2l.8.8" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></g>';
+    }
+    if (acc === 'hat') {
+      return '<g class="acc acc-hat" transform="rotate(-8 80 50)"><path d="M69 51.4 80.4 23 91.6 51.6Q80.4 55.4 69 51.4Z" fill="#F8E7B8" ' + o + '/>' +
+        '<path d="M73.2 41.2q7.6 2.4 14.2-.2M76.6 32.8q4.4 1.4 8.2-.2" fill="none" stroke="#DE8296" stroke-width="1.6" stroke-linecap="round"/>' +
+        '<circle cx="74.4" cy="47" r="1" fill="#B9A7DD"/><circle cx="86.6" cy="47.4" r="1" fill="#B9A7DD"/><circle cx="80.6" cy="37.2" r=".9" fill="#B9A7DD"/>' +
+        '<circle cx="80.4" cy="21.6" r="3.4" fill="#F7C6D2" ' + o + '/></g>';
+    }
+    return '';
+  }
+  function elyAccNeck(acc, line) {
+    if (acc !== 'scarf') return '';
+    const c = { line: line };
+    const o = 'stroke="' + line + '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"';
+    return '<g class="acc acc-scarf"><path d="M61 115.4q19 7.6 38 0l1.4 6q-20.4 8.6-40.8 0Z" fill="#DCD0F2" ' + o + '/>' +
+      '<path d="M81 123.2l-.8 12.8 6 .4.6-12.4Z" fill="#DCD0F2" ' + o + '/>' +
+      '<path d="M70.4 117.6q.4 3.2-.2 6.4M80 118.8v6.4M89.6 117.6q-.4 3.2.2 6.4" fill="none" stroke="#B9A7DD" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<path d="M80.6 136.2l-.3 2.4M83.2 136.4v2.4M85.8 136.4l.3 2.4" fill="none" stroke="' + c.line + '" stroke-width="1.1" stroke-linecap="round"/></g>';
   }
 
   /* ================= toasts, moments, particles ================= */
@@ -211,7 +280,10 @@
     $('.toast-msg').textContent = logLine(e);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(hideToast, 6500);
+    if (dir > 0) elyanaReacts();
     celebrateIfCrossed(before);
+    progressIfCrossed(before);
+    rewards();
   }
   const particlesOn = () => data.settings.celebrations === 'full' && !reducedMotion();
   const effectsOn = () => data.settings.celebrations !== 'off' && !reducedMotion();
@@ -276,7 +348,7 @@
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'moment ' + (great ? 'moment-great' : 'moment-goal');
-    el.innerHTML = '<span class="moment-art">' + elyanaSvg(great ? 'sparkly' : 'happy') + '</span>' +
+    el.innerHTML = '<span class="moment-art">' + elyanaSvg(great ? 'sparkly' : 'happy', data.settings.accessory) + '</span>' +
       '<span class="moment-title">' + (great ? 'Amazing!' : 'Goal reached!') + '</span>' +
       '<span class="moment-sub">' + (great ? g(data.settings.greatGoal) + ' g today. Elyana is all sparkles.' : g(data.settings.goal) + ' g today. Elyana is doing a happy wiggle.') + '</span>';
     el.addEventListener('click', () => el.remove());
@@ -295,6 +367,96 @@
       if (ring) { ring.classList.remove('ring-pulse'); void ring.offsetWidth; ring.classList.add('ring-pulse'); }
     }
   }
+  /* ---------- every log feels good (v1.2) ---------- */
+  /* Elyana reacts to each entry with one of three little moves, never the same twice in a row. */
+  const REACTIONS = ['ely-munch', 'ely-hop', 'ely-wiggle'];
+  let lastReaction = '';
+  function elyanaReacts() {
+    const btn = $('#viewToday .elyana');
+    if (!btn || !effectsOn()) return;
+    const r = pick(REACTIONS.filter((x) => x !== lastReaction));
+    lastReaction = r;
+    REACTIONS.forEach((x) => btn.classList.remove(x));
+    void btn.offsetWidth;
+    btn.classList.add(r);
+    btn.dataset.react = r;
+  }
+  /* The small moments at 25 %, 50 % and 75 % of the goal: once a day each, today only. When the same
+     entry reaches the goal, the goal moment covers it. A short line from Elyana and a tiny flourish. */
+  function progressIfCrossed(beforeTotal) {
+    const goal = data.settings.goal;
+    const after = L.dayTotal(data.log, today);
+    const done = data.meta.celebrated[today] || { goal: false, great: false };
+    let hit = '';
+    [['q25', 0.25], ['q50', 0.5], ['q75', 0.75]].forEach((q) => {
+      if (after >= goal * q[1] && beforeTotal < goal * q[1] && !done[q[0]]) { done[q[0]] = true; hit = q[0]; }
+    });
+    if (!hit) return;
+    data.meta.celebrated[today] = done;
+    persist();
+    if (after >= goal || data.settings.celebrations === 'off' || viewDate !== today || tab !== 'today' || sheet) return;
+    const sub = $('#statusSub');
+    if (sub) { sub.textContent = pick(PROGRESS_LINES[hit]); sub.classList.add('said'); sub.dataset.moment = hit; }
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => { if (!sheet && tab === 'today') render(); }, 4500);
+    const ring = $('.ring');
+    if (ring && effectsOn()) { ring.classList.remove('ring-glow'); void ring.offsetWidth; ring.classList.add('ring-glow'); }
+    const p = arcEnd(after / goal);
+    burst({ x: p.x, y: p.y, count: 12, spread: 360, speed: [1.5, 4], shape: ['star', 'dot'], colors: ['#E2B45A', '#F1D9A2', '#D9768C', '#F5C6D0'], size: 7, life: 900, gravity: 0.04 });
+  }
+  /* Where the ring's arc ends for a fraction of the goal, on screen. */
+  function arcEnd(frac) {
+    const r = $('.ring svg');
+    if (!r) return ringCentre();
+    const b = r.getBoundingClientRect();
+    const a = (Math.min(1, frac) * 360 - 90) * Math.PI / 180;
+    return { x: b.left + b.width * (60 + 52 * Math.cos(a)) / 120, y: b.top + b.height * (60 + 52 * Math.sin(a)) / 120 };
+  }
+
+  /* ---------- keepsakes (badges) ---------- */
+  /* Adds every keepsake the log has earned that is not stored yet (none are ever removed). Returns the
+     new ones; the caller decides whether that is a moment or quiet (imports, restores, opening the app). */
+  function syncBadges() {
+    const earned = L.earnedBadges(data.log, data.settings);
+    const fresh = L.BADGES.map((b) => b.id).filter((id) => earned[id] && !data.badges[id]);
+    if (fresh.length) data.badges = L.mergeBadges(data.badges, earned);
+    return fresh;
+  }
+  const badgeById = (id) => L.BADGES.find((b) => b.id === id);
+  /* A small moment for a new keepsake: a line on the goal card if one is showing, else its own little card. */
+  function keepsakeMoment(ids) {
+    if (!ids.length || data.settings.celebrations === 'off') return;
+    const b = badgeById(ids[0]);
+    const more = ids.length > 1 ? ' and ' + plural(ids.length - 1, 'more', 'more') : '';
+    const card = $('.moment');
+    if (card) {
+      const line = document.createElement('span');
+      line.className = 'moment-keep';
+      line.innerHTML = ico(b.icon) + '<span></span>';
+      $('span', line).textContent = 'New keepsake: ' + b.name + more;
+      card.appendChild(line);
+      return;
+    }
+    document.querySelectorAll('.keepsake-moment').forEach((m) => m.remove());
+    /* a moment to see, not a button: taps pass through it (it sits over the top of the page for a few
+       seconds); the basket is one tap away beside Elyana and on the Stats tab */
+    const el = document.createElement('div');
+    el.className = 'keepsake-moment';
+    el.setAttribute('role', 'status');
+    el.innerHTML = '<span class="keep-art keep-on">' + ico(b.icon) + '</span><span class="km-text"><span class="km-small">New keepsake</span><b></b><span class="km-desc"></span></span>';
+    $('b', el).textContent = b.name;
+    $('.km-desc', el).textContent = b.desc + more;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+    const r = el.getBoundingClientRect();
+    burst({ x: r.left + 34, y: r.top + r.height / 2, count: 14, spread: 360, speed: [2, 5], shape: 'star', colors: ['#E2B45A', '#F1D9A2', '#FFF4D6'], size: 8, life: 1000, gravity: 0.05 });
+  }
+  /* After anything she does that could earn one: store it and give it its moment. */
+  function rewards() {
+    const fresh = syncBadges();
+    if (fresh.length) { persist(); keepsakeMoment(fresh); }
+  }
+
   /* The food's icon floats up from where it was tapped. */
   function popIcon(key, fromEl) {
     if (!effectsOn() || !fromEl || !fromEl.isConnected) return;
@@ -323,13 +485,16 @@
 
   /* ================= rendering ================= */
   function render() {
-    if (sheet || (drag && drag.active)) { renderPill(); return; }
+    /* never redraw under her while she is typing a note (the note saves as she types) */
+    const typing = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('note-area');
+    if (sheet || (drag && drag.active) || typing) { renderPill(); return; }
     document.body.className = 'celeb-' + data.settings.celebrations;
     $('#viewToday').hidden = tab !== 'today';
+    $('#viewStats').hidden = tab !== 'stats';
     $('#viewFoods').hidden = tab !== 'foods';
     document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('tab-on', b.dataset.tab === tab));
     $('.fab').setAttribute('aria-label', tab === 'foods' ? 'Add a food' : 'Add to the day');
-    if (tab === 'today') renderToday(); else renderFoods();
+    if (tab === 'today') renderToday(); else if (tab === 'stats') renderStats(); else renderFoods();
     renderPill();
   }
 
@@ -349,6 +514,7 @@
       '<circle class="ring-track" cx="60" cy="60" r="52"/>' +
       '<circle class="ring-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke-dasharray="' + C.toFixed(2) + '" stroke-dashoffset="' + (C * (1 - sg.pct)).toFixed(2) + '" data-c="' + C.toFixed(2) + '"/>' +
       '<circle class="ring-arc2" cx="60" cy="60" r="57" transform="rotate(-90 60 60)" stroke-dasharray="' + C2.toFixed(2) + '" stroke-dashoffset="' + (C2 * (1 - sg.greatPct)).toFixed(2) + '" data-c="' + C2.toFixed(2) + '"/>' +
+      '<g class="ring-spark" opacity="0"><circle r="5" class="spark-glow"/><path d="M0-4.2Q.6-.6 4.2 0 .6.6 0 4.2-.6.6-4.2 0-.6-.6 0-4.2Z" class="spark-star"/></g>' +
       '</svg>' +
       '<div class="ring-mid"><div class="ring-big"><span class="ring-num">' + g(shownTotal) + '</span><span class="ring-g">g</span></div>' +
       '<div class="ring-sub">of ' + g(gs.level >= 1 ? gs.greatGoal : gs.goal) + ' g</div></div></div>';
@@ -361,6 +527,11 @@
     const gs = L.goalState(total, data.settings);
     const from = shown.key === viewDate && !reducedMotion() ? shown.total : total;
     const lines = statusLines(gs, isToday);
+    if (isToday && new Date().getHours() >= 20 && entries.length && !data.dayNotes[today] && data.meta.noteNudge !== today) {
+      lines[1] = NOTE_NUDGE;
+      data.meta.noteNudge = today;
+      persist();
+    }
     const usual = L.usuals(data.foods);
     const groups = L.groupByMeal(entries);
 
@@ -370,10 +541,12 @@
       (viewDate === today || viewDate === L.addDays(today, -1) ? '<small>' + esc(L.shortDate(viewDate, today)) + '</small>' : '') + '</button>' +
       '<button type="button" class="navbtn" data-act="day-next" aria-label="Next day"' + (isToday ? ' disabled' : '') + '>' + ico('right') + '</button>' +
       '<input type="date" id="dayInput" class="ghost-input" tabindex="-1" aria-hidden="true" max="' + today + '" value="' + viewDate + '"></div>';
+    const pweek = L.pregWeek(viewDate, L.pregDates(data.settings));
+    if (pweek) h += '<p class="preg-line" id="pregLine">Week ' + pweek + '</p>';
 
-    h += '<section class="card hero hero-l' + gs.level + '">' +
+    h += '<section class="card hero hero-l' + gs.level + '"><button type="button" class="basket-btn" data-act="basket" aria-label="Elyana\'s basket">' + ico('basket') + '</button>' +
       '<div class="hero-row">' + ringHtml(gs, from) +
-      '<div class="hero-side"><button type="button" class="elyana mood-' + gs.mood + '" data-act="elyana" data-mood="' + gs.mood + '" aria-label="Elyana the baby bunny">' + elyanaSvg(gs.mood) + '</button></div></div>' +
+      '<div class="hero-side"><button type="button" class="elyana mood-' + gs.mood + '" data-act="elyana" data-mood="' + gs.mood + '" aria-label="Elyana the baby bunny">' + elyanaSvg(gs.mood, data.settings.accessory) + '</button></div></div>' +
       '<div class="hero-status"><b id="statusMain">' + esc(lines[0]) + '</b><span id="statusSub">' + esc(lines[1]) + '</span></div>' +
       '</section>';
 
@@ -398,10 +571,41 @@
         '</div></div>';
     });
     h += '</section>';
+    h += noteBlockHtml('day', viewDate, isToday ? 'How did today feel?' : 'How did this day feel?');
 
     $('#viewToday').innerHTML = h;
+    fillNotes();
     shown = { key: viewDate, total: total };
     if (from !== total) countUp(from, total);
+  }
+
+  /* ---------- day and week notes: free text, saved as she types, shown as plain text ---------- */
+  const NOTE_MAPS = { day: 'dayNotes', week: 'weekNotes', preg: 'pregNotes' };
+  const noteBlockHtml = (kind, key, title) => '<section class="block note-block" id="' + kind + 'NoteBlock"><label class="note-label" for="' + kind + 'Note">' + ico('note') +
+    '<span>' + esc(title) + '</span></label><textarea class="input area note-area" id="' + kind + 'Note" data-in="note" data-kind="' + kind + '" data-key="' + esc(key) + '" rows="3" maxlength="' + L.NOTE_MAX + '" ' +
+    'placeholder="' + (kind === 'day' ? 'Meals, mood, anything at all. Just for you.' : 'How the week went, meal-wise and otherwise.') + '"></textarea><span class="note-saved" id="' + kind + 'NoteSaved" aria-live="polite"></span></section>';
+  /* Puts each note's text in its box (as text, never as markup). */
+  function fillNotes() {
+    document.querySelectorAll('.note-area').forEach((el) => { el.value = data[NOTE_MAPS[el.dataset.kind]][el.dataset.key] || ''; });
+  }
+  let noteTimer = 0, notePending = null;
+  function saveNote(el) {
+    clearTimeout(noteTimer);
+    notePending = null;
+    const map = data[NOTE_MAPS[el.dataset.kind]], key = el.dataset.key;
+    const text = el.value.slice(0, L.NOTE_MAX);
+    if ((map[key] || '') === (text.trim() ? text : '')) return;
+    if (text.trim()) map[key] = text; else delete map[key];
+    changed();
+    const saved = $('#' + el.dataset.kind + 'NoteSaved');
+    if (saved) saved.textContent = 'Saved';
+  }
+  function noteTyped(el) {
+    notePending = el;
+    const saved = $('#' + el.dataset.kind + 'NoteSaved');
+    if (saved) saved.textContent = '';
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => saveNote(el), 600);
   }
 
   let countRun = 0;
@@ -409,6 +613,8 @@
     const run = ++countRun;
     const num = $('.ring-num'), arc = $('.ring-arc'), arc2 = $('.ring-arc2');
     if (!num || !arc) return;
+    /* a soft sparkle travels along the arc as it fills */
+    const spark = to > from && effectsOn() ? $('.ring-spark') : null;
     const start = performance.now(), dur = 700;
     (function step(now) {
       if (run !== countRun || !num.isConnected) return;
@@ -419,6 +625,12 @@
       num.textContent = t === 1 ? g(to) : g(Math.round(v));
       arc.setAttribute('stroke-dashoffset', (Number(arc.dataset.c) * (1 - s.pct)).toFixed(2));
       arc2.setAttribute('stroke-dashoffset', (Number(arc2.dataset.c) * (1 - s.greatPct)).toFixed(2));
+      if (spark) {
+        const a = (s.pct * 360 - 90) * Math.PI / 180;
+        spark.setAttribute('transform', 'translate(' + (60 + 52 * Math.cos(a)).toFixed(2) + ' ' + (60 + 52 * Math.sin(a)).toFixed(2) + ') rotate(' + (t * 180).toFixed(0) + ')');
+        spark.setAttribute('opacity', t < 0.85 ? '1' : ((1 - t) / 0.15).toFixed(2));
+        spark.classList.add('sparking');
+      }
       if (t < 1) requestAnimationFrame(step);
     })(start);
   }
@@ -444,6 +656,236 @@
       h += '<details class="block archived"><summary>Archived (' + archived.length + ')</summary><div class="card list">' + archived.map(foodRow).join('') + '</div></details>';
     }
     $('#viewFoods').innerHTML = h;
+  }
+
+  /* ================= Stats: her record, motivation without shame ================= */
+  /* range: week | month | all; anchor: a date in the week or month shown ('' = today); cal: the month
+     on the Record calendar ('' = this month); sel: the bar tapped; sort: count | grams; by: food | category. */
+  const stv = { range: 'week', anchor: '', cal: '', sel: '', sort: 'count', by: 'food', all: false };
+  const RANGES = [['week', 'Week'], ['month', 'Month'], ['all', 'All']];
+  const WEEKDAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const pct = (x) => Math.round(x * 100) + '%';
+  const segHtml = (act, list, current, cls) => '<div class="seg' + (cls ? ' ' + cls : '') + '">' + list.map((x) =>
+    '<button type="button" class="seg-btn' + (x[0] === current ? ' seg-on' : '') + '" data-act="' + act + '" data-v="' + x[0] + '" aria-pressed="' + (x[0] === current) + '">' + esc(x[1]) + '</button>').join('') + '</div>';
+
+  /* The bar chart: one bar per item ({ key, value, label, kind, tip }), hand-drawn in SVG with thin guide
+     lines at the goal and the great goal. Bars at the goal are rose, at the great goal butter-gold, the rest
+     a soft sand colour. wide: a fixed slot per bar, scrolling sideways (Month, All). */
+  function barsHtml(items, wide) {
+    const s = data.settings;
+    const slot = wide ? 26 : 44, H = 132, top = 12, labelH = 22, pad = 16;
+    const W = items.length * slot + pad * 2;
+    const max = Math.max(s.greatGoal * 1.15, ...items.map((x) => x.value * 1.06), 1);
+    const y = (v) => top + H - (v / max) * H;
+    const bw = Math.round(slot * (wide ? 0.62 : 0.5));
+    let h = '<svg class="bars" ' + (wide ? 'width="' + W + '" height="' + (top + H + labelH) + '"' : 'width="100%"') + ' viewBox="0 0 ' + W + ' ' + (top + H + labelH) + '" role="img" aria-label="Protein per bar">';
+    [[s.goal, 'guide-goal'], [s.greatGoal, 'guide-great']].forEach((gl) => { h += '<line class="guide ' + gl[1] + '" x1="0" x2="' + W + '" y1="' + y(gl[0]).toFixed(1) + '" y2="' + y(gl[0]).toFixed(1) + '"/>'; });
+    h += '<line class="baseline" x1="0" x2="' + W + '" y1="' + (top + H) + '" y2="' + (top + H) + '"/>';
+    items.forEach((it, i) => {
+      const x = pad + i * slot;
+      const lvl = it.value > 0 ? L.levelOf(it.value, s) : -1;
+      h += '<g class="bar' + (it.key === stv.sel ? ' bar-on' : '') + (it.future ? ' bar-future' : '') + '" data-act="bar" data-key="' + esc(it.key) + '" data-kind="' + it.kind + '"' +
+        (it.future ? '' : ' tabindex="0" role="button" aria-label="' + esc(it.aria || it.label) + '"') + '>' +
+        '<rect class="bar-hit" x="' + x + '" y="0" width="' + slot + '" height="' + (top + H + labelH) + '"/>';
+      if (lvl >= 0) {
+        const yy = y(it.value), hh = Math.max(3, top + H - yy);
+        h += '<rect class="bar-fill bar-l' + lvl + '" x="' + (x + (slot - bw) / 2) + '" y="' + (top + H - hh).toFixed(1) + '" width="' + bw + '" height="' + hh.toFixed(1) + '" rx="' + Math.min(4, bw / 2) + '"/>';
+      } else if (!it.future && it.logged !== false) {
+        h += '<circle class="bar-none" cx="' + (x + slot / 2) + '" cy="' + (top + H - 2) + '" r="1.6"/>';
+      }
+      if (it.label) h += '<text class="bar-label' + (it.key === today ? ' bar-today' : '') + '" x="' + (x + slot / 2) + '" y="' + (top + H + 15) + '" text-anchor="middle">' + esc(it.label) + '</text>';
+      h += '</g>';
+    });
+    return h + '</svg>';
+  }
+  /* The line under the chart: what the tapped bar holds, with a way to open it. */
+  function barTipHtml(item) {
+    if (!item) return '<span class="tip-hint">Tap a bar to see its day</span>';
+    if (item.kind === 'day') {
+      return '<span class="tip-text"><b>' + esc(L.shortDate(item.key, today)) + '</b>' + (item.value > 0 || item.logged ? g(item.value) + ' g' : 'Nothing logged') + '</span>' +
+        '<button type="button" class="btn text" data-act="view-day" data-key="' + esc(item.key) + '">View day</button>';
+    }
+    return '<span class="tip-text tip-stack"><b>' + esc(item.title) + '</b>' + esc(item.detail) + '</span>' +
+      (item.action ? '<button type="button" class="btn text" data-act="' + item.action + '" data-key="' + esc(item.key) + '">' + esc(item.actionLabel) + '</button>' : '');
+  }
+  let barItems = [];
+  function statsBars(r, totals) {
+    const first = L.firstDay(data.log);
+    let items, wide = stv.range !== 'week', title = 'Protein each day';
+    if (stv.range === 'all' && L.daysBetween(r.from, r.to) > 62) {
+      title = 'Average per logged day, by week';
+      items = L.weekGroups(totals, data.settings, r.from, r.to).map((w, i, all) => ({
+        key: 'w' + w.from, kind: 'week', value: w.avg, logged: w.logged > 0,
+        label: i % 2 === all.length % 2 ? '' : L.parseKey(w.from).getDate() + ' ' + L.shortDate(w.from).split(' ')[2],
+        title: 'Week of ' + L.shortDate(w.from, today), aria: 'Week of ' + L.shortDate(w.from, today),
+        detail: w.logged ? g(w.avg) + ' g a logged day · ' + plural(w.logged, 'day', 'days') + ' logged · ' + plural(w.goal, 'goal day', 'goal days') : 'A quiet week',
+        action: 'view-week', actionLabel: 'View week'
+      }));
+    } else {
+      items = L.dayList(r.from, r.to).map((k) => {
+        const d = L.parseKey(k);
+        return {
+          key: k, kind: 'day', value: totals[k] || 0, logged: totals[k] !== undefined && k >= first, future: k > today,
+          label: stv.range === 'week' ? WEEKDAY_LETTERS[(d.getDay() + 6) % 7] : stv.range === 'month' ? String(d.getDate()) : (d.getDay() === 1 ? d.getDate() + ' ' + L.shortDate(k).split(' ')[2] : ''),
+          aria: L.shortDate(k, today) + ', ' + g(totals[k] || 0) + ' g'
+        };
+      });
+    }
+    return chartHtml(title, items, wide);
+  }
+  function chartHtml(title, items, wide) {
+    barItems = items;
+    const sel = items.find((x) => x.key === stv.sel);
+    return '<section class="block"><div class="block-head"><h2 class="block-title">' + title + '</h2></div><div class="card chart">' +
+      '<div class="bars-wrap' + (wide ? ' bars-scroll' : '') + '" id="barsWrap">' + barsHtml(items, wide) + '</div>' +
+      '<div class="chart-key"><span class="key key-goal">' + g(data.settings.goal) + ' g goal</span><span class="key key-great">' + g(data.settings.greatGoal) + ' g great</span></div>' +
+      '<div class="bar-tip" id="barTip">' + barTipHtml(sel) + '</div></div></section>';
+  }
+  function selectBar(el) {
+    const item = barItems.find((x) => x.key === el.dataset.key);
+    if (!item || item.future) return;
+    stv.sel = item.key;
+    document.querySelectorAll('#barsWrap .bar').forEach((b) => b.classList.toggle('bar-on', b === el));
+    $('#barTip').innerHTML = barTipHtml(item);
+    const pn = $('#pregNoteBlock');
+    if (pn && item.kind === 'preg') {
+      if (notePending) saveNote(notePending);
+      pn.outerHTML = pregNoteHtml(0);
+      fillNotes();
+    }
+  }
+
+  function calendarHtml(totals) {
+    const month = stv.cal || L.monthStart(today);
+    const rows = L.monthGrid(month);
+    const head = '<div class="cal-head"><button type="button" class="navbtn" data-act="cal-prev" aria-label="Previous month">' + ico('left') + '</button>' +
+      '<b>' + esc(L.monthLabel(month)) + '</b>' +
+      '<button type="button" class="navbtn" data-act="cal-next" aria-label="Next month"' + (month >= L.monthStart(today) ? ' disabled' : '') + '>' + ico('right') + '</button></div>';
+    const cells = rows.map((row) => row.map((k) => {
+      if (!k) return '<span class="cal-pad"></span>';
+      const t = totals[k], lvl = t !== undefined ? L.levelOf(t, data.settings) : -1;
+      const fill = t ? Math.min(1, t / data.settings.goal) : 0;
+      return '<button type="button" class="cal-day' + (lvl >= 0 ? ' cal-l' + lvl : '') + (k === today ? ' cal-today' : '') + '" data-act="cal-day" data-key="' + k + '"' +
+        (k > today ? ' disabled' : '') + (lvl === 0 ? ' style="--fill:' + fill.toFixed(2) + '"' : '') +
+        ' aria-label="' + esc(L.shortDate(k, today) + (t !== undefined ? ', ' + g(t) + ' g' : '') + (data.dayNotes[k] ? ', with a note' : '')) + '"><span>' + L.parseKey(k).getDate() + '</span>' +
+        (data.dayNotes[k] ? '<i class="cal-note" aria-hidden="true"></i>' : '') + '</button>';
+    }).join('')).join('');
+    return '<section class="block"><div class="block-head"><h2 class="block-title">Record</h2></div><div class="card cal">' + head +
+      '<div class="cal-grid">' + WEEKDAY_LETTERS.map((d) => '<i>' + d + '</i>').join('') + cells + '</div></div></section>';
+  }
+
+  function sourcesHtml(r) {
+    const list = L.rankSources(L.sources(data.log, data.foods, r.from, r.to, stv.by), stv.sort);
+    const top = list[0] ? (stv.sort === 'grams' ? list[0].grams : list[0].count) : 1;
+    const shownList = stv.all ? list : list.slice(0, 8);
+    let h = '<section class="block"><div class="block-head"><h2 class="block-title">Sources</h2></div>' +
+      '<div class="src-toggles">' + segHtml('src-sort', [['count', 'Most often'], ['grams', 'Most protein']], stv.sort, 'seg-sm') +
+      segHtml('src-by', [['food', 'By food'], ['category', 'By category']], stv.by, 'seg-sm') + '</div>';
+    if (!list.length) return h + '<div class="empty">Nothing logged in these days. The list fills in as you go.</div></section>';
+    h += '<div class="card src-list" id="srcList">' + shownList.map((x) => {
+      const v = stv.sort === 'grams' ? x.grams : x.count;
+      return '<div class="src-row">' + bubble(x.icon, 'sm') + '<span class="src-main"><span class="src-name">' + esc(x.name) + '</span>' +
+        '<span class="src-track"><span class="src-fill" style="width:' + Math.max(3, Math.round(v / top * 100)) + '%"></span></span></span>' +
+        '<span class="src-val">' + (stv.sort === 'grams' ? g(x.grams) + ' g<small>' + pct(x.share) + '</small>' : x.count + '<small>' + (x.count === 1 ? 'time' : 'times') + '</small>') + '</span></div>';
+    }).join('') + '</div>';
+    if (list.length > 8) h += '<button type="button" class="btn text show-all" data-act="src-all">' + (stv.all ? 'Show the top 8' : 'Show all ' + list.length) + '</button>';
+    return h + '</section>';
+  }
+
+  function figuresHtml(totals, r) {
+    const sm = L.summary(totals, data.settings, r.from, r.to);
+    const runs = L.goalRuns(totals, data.settings, today);
+    const fig = (label, value, sub, cls) => '<div class="fig' + (cls ? ' ' + cls : '') + '"><span class="fig-label">' + label + '</span><span class="fig-value">' + value + '</span><span class="fig-sub">' + sub + '</span></div>';
+    return '<section class="card figs" id="figs">' +
+      fig('Days logged', String(sm.logged), sm.logged === 1 ? 'day with a bite' : 'days with a bite') +
+      fig('Goal days', sm.goal + '<small> of ' + sm.logged + '</small>', sm.logged ? pct(sm.rate) + ' of logged days' : 'Ready when you are', 'fig-goal') +
+      fig('Current run', String(runs.current), runs.current === 1 ? 'goal day in a row' : 'goal days in a row') +
+      fig('Best run', String(runs.best), runs.best === 1 ? 'goal day in a row' : 'goal days in a row') + '</section>';
+  }
+
+  /* Pregnancy weeks: one bar per week since the start date, the average per logged day. */
+  function pregBars(p, totals) {
+    const weeks = L.pregWeeks(totals, data.settings, p, today);
+    const items = weeks.map((w) => ({
+      key: 'p' + w.week, kind: 'preg', value: w.avg, logged: w.logged > 0, label: String(w.week),
+      aria: 'Week ' + w.week + ', ' + g(w.avg) + ' g a logged day',
+      title: 'Week ' + w.week + ' · ' + L.rangeLabel(w.from, w.to, today),
+      detail: w.logged ? g(w.avg) + ' g a logged day · ' + plural(w.logged, 'day', 'days') + ' logged · ' + plural(w.goal, 'goal day', 'goal days') : 'A quiet week'
+    }));
+    return chartHtml('Average per logged day, by pregnancy week', items, items.length > 8);
+  }
+  /* In Pregnancy weeks the week note belongs to that pregnancy week: the one tapped, else this week. */
+  const pregNoteHtml = (now) => { const n = /^p\d+$/.test(stv.sel) ? Number(stv.sel.slice(1)) : now; return noteBlockHtml('preg', String(n), 'How did week ' + n + ' feel?'); };
+  const TRI_NAMES = ['First trimester', 'Second trimester', 'Third trimester'];
+  function trimestersHtml(p, totals) {
+    return '<section class="block" id="trimesters">' + L.trimesters(data.log, data.foods, totals, data.settings, p, today).map((t) => {
+      let h = '<div class="card tri' + (t.started ? '' : ' tri-later') + '"><div class="tri-head"><h3>' + TRI_NAMES[t.trimester - 1] + '</h3><span>Weeks ' + t.fromWeek + ' – ' + t.toWeek + '</span></div>';
+      if (!t.started) return h + '<p class="tri-note">Begins in week ' + t.fromWeek + ', on ' + esc(L.shortDate(t.from, today)) + '</p></div>';
+      if (!t.logged) return h + '<p class="tri-note">A quiet stretch so far</p></div>';
+      h += '<div class="tri-figs"><div><b>' + t.logged + '</b><span>days logged</span></div><div><b>' + g(t.avg) + '<small> g</small></b><span>per logged day</span></div>' +
+        '<div><b>' + t.goal + '<small> of ' + t.logged + '</small></b><span>goal days · ' + pct(t.rate) + '</span></div></div>';
+      return h + '<div class="tri-top"><span class="tri-top-title">Top sources</span>' + t.top.map((x) => '<span class="tri-src">' + bubble(x.icon, 'sm') + '<span>' + esc(x.name) + '</span><i>' + g(x.grams) + ' g</i></span>').join('') + '</div></div>';
+    }).join('') + '</section>';
+  }
+
+  function renderStats() {
+    const v = $('#viewStats');
+    let h = '<div class="view-head"><h1 class="greet">My record</h1></div>';
+    if (!data.log.length) {
+      v.innerHTML = h + '<div class="stats-empty"><div class="stats-empty-art">' + elyanaSvg('sleepy') + '</div>' +
+        '<p class="stats-empty-title">Your record starts with your first bite</p>' +
+        '<p>Log something on Today and your days will bloom here, one by one.</p>' +
+        '<button type="button" class="btn soft" data-act="tab" data-tab="today">Go to Today</button></div>';
+      return;
+    }
+    const totals = L.totalsByDay(data.log);
+    const cs = L.carrots(totals, data.settings);
+    h += '<button type="button" class="card basket-card" data-act="basket"><span class="bubble">' + ico('basket') + '</span><span class="entry-text"><span class="entry-name">Elyana\'s basket</span>' +
+      '<span class="entry-sub">' + esc(plural(cs.total, 'carrot', 'carrots') + ' · ' + plural(Object.keys(data.badges).length, 'keepsake', 'keepsakes')) + '</span></span>' + ico('right') + '</button>';
+    const p = L.pregDates(data.settings);
+    if (!p && (stv.range === 'pweeks' || stv.range === 'tri')) stv.range = 'week';
+    h += segHtml('st-range', RANGES, stv.range, 'range-seg');
+    if (p) h += segHtml('st-range', [['pweeks', 'Pregnancy weeks'], ['tri', 'Trimesters']], stv.range, 'range-seg preg-seg');
+    if (p && (stv.range === 'pweeks' || stv.range === 'tri')) {
+      if (today < p.start) {
+        v.innerHTML = h + '<div class="empty">Week 1 begins on ' + esc(L.shortDate(p.start, today)) + '. The weeks will gather here from then.</div>';
+        return;
+      }
+      const pr = { from: p.start, to: today > p.due ? p.due : today };
+      const now = L.pregWeek(pr.to, p);
+      h += '<div class="period"><span class="period-label">' + (stv.range === 'pweeks' ? 'Weeks 1 – ' + now : esc(L.rangeLabel(p.start, p.due, today))) + '</span></div>';
+      h += stv.range === 'pweeks' ? figuresHtml(totals, pr) + pregBars(p, totals) + pregNoteHtml(now) + calendarHtml(totals) + sourcesHtml(pr) : trimestersHtml(p, totals) + calendarHtml(totals);
+      v.innerHTML = h;
+      fillNotes();
+      scrollBars();
+      return;
+    }
+    const r = L.statsRange(stv.range, stv.anchor || today, today, L.firstDay(data.log));
+    if (stv.range === 'all') h += '<div class="period"><span class="period-label">Since ' + esc(L.shortDate(r.from, today)) + '</span></div>';
+    else {
+      h += '<div class="period"><button type="button" class="navbtn" data-act="range-prev" aria-label="Earlier">' + ico('left') + '</button>' +
+        '<span class="period-label">' + esc(stv.range === 'month' ? L.monthLabel(r.from) : L.rangeLabel(r.from, r.to, today)) + '</span>' +
+        '<button type="button" class="navbtn" data-act="range-next" aria-label="Later"' + (r.to >= today ? ' disabled' : '') + '>' + ico('right') + '</button></div>';
+    }
+    h += figuresHtml(totals, r) + statsBars(r, totals) + (stv.range === 'week' ? noteBlockHtml('week', r.from, 'How did this week feel?') : '') + calendarHtml(totals) + sourcesHtml(r);
+    v.innerHTML = h;
+    fillNotes();
+    scrollBars();
+  }
+  /* A sideways chart opens at its newest bars (or keeps the tapped one in view). */
+  function scrollBars() {
+    const wrap = $('#barsWrap');
+    if (wrap && wrap.classList.contains('bars-scroll')) {
+      const on = $('.bar-on', wrap);
+      wrap.scrollLeft = on ? Math.max(0, on.getBBox().x - wrap.clientWidth / 2) : wrap.scrollWidth;
+    }
+  }
+  function openDay(key) {
+    if (!L.isDateKey(key) || key > today) return;
+    viewDate = key;
+    tab = 'today';
+    window.scrollTo(0, 0);
+    render();
   }
 
   function pillInfo() {
@@ -543,14 +985,18 @@
     render();
   }
   let modalDone = null;
+  /* A small dialog. Resolves true for the main button, false for cancel, and 'alt' for the optional
+     second choice (o.alt), which stacks the buttons with the main one first. */
   function ask(o) {
     if (modalDone) modalDone(false);
     return new Promise((resolve) => {
       const m = $('#modal');
+      const cancel = '<button type="button" class="btn ghost" data-act="modal-cancel">' + esc(o.cancel || 'Cancel') + '</button>';
+      const ok = '<button type="button" class="btn primary" data-act="modal-ok">' + esc(o.ok || 'OK') + '</button>';
       m.innerHTML = '<div class="backdrop" data-act="modal-cancel"></div><div class="modal-card" role="alertdialog" aria-modal="true">' +
-        '<h2>' + esc(o.title) + '</h2><p>' + esc(o.body) + '</p><div class="modal-btns">' +
-        '<button type="button" class="btn ghost" data-act="modal-cancel">' + esc(o.cancel || 'Cancel') + '</button>' +
-        '<button type="button" class="btn primary" data-act="modal-ok">' + esc(o.ok || 'OK') + '</button></div></div>';
+        '<h2>' + esc(o.title) + '</h2><p>' + esc(o.body) + '</p>' +
+        (o.alt ? '<div class="modal-btns modal-stack">' + ok + '<button type="button" class="btn soft" data-act="modal-alt">' + esc(o.alt) + '</button>' + cancel + '</div></div>'
+          : '<div class="modal-btns">' + cancel + ok + '</div></div>');
       m.hidden = false;
       modalDone = (v) => { modalDone = null; m.hidden = true; m.innerHTML = ''; resolve(v); };
     });
@@ -566,14 +1012,23 @@
     if (date > today) date = today;
     return { time: time, date: date };
   }
-  /* "How much": a count stepper and an amount box in the serving's unit, kept in step with each other. */
-  const amountHtml = (prefix, amount, serving) =>
+  /* "How much": a count stepper and an amount box, kept in step with each other. The amount is held in
+     the serving's unit; a weight serving (g or oz) can be shown and typed in either, with a g / oz switch. */
+  const shownUnit = (unit, serving) => L.otherWeight(unit, serving.unit) || serving.unit;
+  const amountText = (amount, serving, unit) => (L.otherWeight(unit, serving.unit) ? L.fmtWeight(L.convertAmount(amount, serving.unit, unit)) : n2(amount));
+  const unitSwitch = (act, current, extra) => '<div class="unitsw" role="group" aria-label="Weigh in grams or ounces">' + ['g', 'oz'].map((u) =>
+    '<button type="button" class="unitsw-btn' + (L.weightUnit(current) === u ? ' unitsw-on' : '') + '" data-act="' + act + '" data-unit="' + u + '"' + (extra || '') +
+    ' aria-pressed="' + (L.weightUnit(current) === u) + '">' + u + '</button>').join('') + '</div>';
+  const amountHtml = (prefix, amount, serving, unit) =>
     '<div class="qty-row"><div class="stepper"><button type="button" class="step" data-act="' + prefix + '-minus" aria-label="Less">' + ico('minus') + '</button>' +
     '<output id="' + prefix + 'Qty">' + n2(L.countOf(amount, serving.amount)) + '</output>' +
     '<button type="button" class="step" data-act="' + prefix + '-plus" aria-label="More">' + ico('plus') + '</button></div>' +
     '<span class="qty-or">or</span>' +
-    '<label class="amount"><input class="input" id="' + prefix + 'Amount" data-in="' + prefix + '-amount" type="number" inputmode="decimal" min="0" step="any" aria-label="Amount" value="' + esc(n2(amount)) + '">' +
-    '<span class="amount-unit" id="' + prefix + 'Unit">' + esc(serving.unit) + '</span></label></div>';
+    '<label class="amount"><input class="input" id="' + prefix + 'Amount" data-in="' + prefix + '-amount" type="number" inputmode="decimal" min="0" step="any" aria-label="Amount" value="' + esc(amountText(amount, serving, unit)) + '">' +
+    '<span class="amount-unit" id="' + prefix + 'Unit">' + esc(shownUnit(unit, serving)) + '</span></label>' +
+    (L.isWeight(serving.unit) ? unitSwitch(prefix + '-unit', shownUnit(unit, serving)) : '') + '</div>';
+  /* A typed number in the unit on screen, as an amount in the serving's unit (NaN when the box is empty). */
+  const typedInServing = (el, serving, unit) => { const v = typedAmount(el, NaN); return Number.isFinite(v) ? L.convertAmount(v, shownUnit(unit, serving), serving.unit) : NaN; };
   const typedAmount = (el, fallback) => { const v = parseFloat(el.value); return Number.isFinite(v) && v > 0 ? L.round2(v) : fallback; };
 
   let iconNow = L.DEFAULT_ICON;
@@ -587,7 +1042,7 @@
   let qa = null;
   function openQuickAdd() {
     checkDay();
-    qa = { mode: 'list', q: '', foodId: '', servingId: '', amount: 1, time: L.timeKey(new Date()), date: viewDate, other: { name: '', protein: '', save: false } };
+    qa = { mode: 'list', q: '', foodId: '', servingId: '', amount: 1, unit: '', time: L.timeKey(new Date()), date: viewDate, other: { name: '', protein: '', save: false } };
     openSheet('qa', quickAddHtml());
   }
   function qaListHtml() {
@@ -622,7 +1077,7 @@
     return back + '<div class="picked">' + bubble(f.icon, 'big') + '<h2 class="sheet-title">' + esc(f.name) + '</h2></div>' +
       (f.servings.length > 1 ? '<div class="field"><span>Serving</span><div class="chips">' + f.servings.map((x) =>
         '<button type="button" class="chip' + (x.id === s.id ? ' chip-on' : '') + '" data-act="qa-serving" data-id="' + esc(x.id) + '">' + esc(L.servingLabel(x)) + '<span class="chip-g">' + g(x.protein) + ' g</span></button>').join('') + '</div></div>' : '') +
-      '<div class="field"><span class="split">How much <i class="per">' + esc(L.servingLabel(s)) + ' = ' + g(s.protein) + ' g protein</i></span>' + amountHtml('qa', qa.amount, s) +
+      '<div class="field"><span class="split">How much <i class="per">' + esc(L.servingLabel(s)) + ' = ' + g(s.protein) + ' g protein</i></span>' + amountHtml('qa', qa.amount, s, qa.unit) +
       '<div class="live" id="qaLive">' + g(qaProtein()) + ' g protein</div></div>' +
       whenFields('qa', qa.time, qa.date) +
       '<button type="button" class="btn primary wide" data-act="qa-add" id="qaAdd">Add ' + g(qaProtein()) + ' g</button>';
@@ -637,7 +1092,7 @@
   function qaLive(fromBox) {
     const p = g(qaProtein());
     $('#qaQty').textContent = n2(L.countOf(qa.amount, qaServing().amount));
-    if (!fromBox) $('#qaAmount').value = n2(qa.amount);
+    if (!fromBox) $('#qaAmount').value = amountText(qa.amount, qaServing(), qa.unit);
     $('#qaLive').textContent = p + ' g protein';
     $('#qaAdd').textContent = 'Add ' + p + ' g';
   }
@@ -655,7 +1110,10 @@
     popIcon(entry.icon, fromEl);
     if (sheet) { viewDate = entry.date; closeSheet(); } else render();
     logToast(entry);
+    elyanaReacts();
     celebrateIfCrossed(before);
+    progressIfCrossed(before);
+    rewards();
   }
   function logUsual(id, el) {
     checkDay();
@@ -674,11 +1132,11 @@
     const options = food ? food.servings.map((s) => ({ amount: s.amount, unit: s.unit, protein: s.protein })) : [];
     let sel = options.findIndex((o) => o.amount === e.servingAmount && o.unit === e.unit && o.protein === e.proteinPer);
     if (sel < 0) { options.unshift({ amount: e.servingAmount, unit: e.unit, protein: e.proteinPer }); sel = 0; }
-    ed = { id: id, amount: e.amount, options: options, sel: sel };
+    ed = { id: id, amount: e.amount, unit: L.otherWeight(e.enteredUnit, e.unit), options: options, sel: sel };
     openSheet('edit', '<div class="picked">' + bubble(e.icon, 'big') + '<h2 class="sheet-title">' + esc(e.name) + '</h2></div>' +
       (options.length > 1 ? '<div class="field"><span>Serving</span><div class="chips" id="edServings">' + options.map((o, i) =>
         '<button type="button" class="chip' + (i === sel ? ' chip-on' : '') + '" data-act="ed-serving" data-i="' + i + '">' + esc(L.servingLabel(o)) + '<span class="chip-g">' + g(o.protein) + ' g</span></button>').join('') + '</div></div>' : '') +
-      '<div class="field"><span>How much</span>' + amountHtml('ed', e.amount, options[sel]) + '</div>' +
+      '<div class="field"><span>How much</span><div id="edHow">' + amountHtml('ed', e.amount, options[sel], ed.unit) + '</div></div>' +
       '<label class="field"><span>Protein (g)</span><input class="input" id="edProtein" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(g(e.protein)) + '"></label>' +
       whenFields('ed', e.time, e.date) +
       '<label class="field"><span>Note</span><input class="input" id="edNote" type="text" maxlength="80" autocomplete="off" placeholder="Anything to remember" value="' + esc(e.note) + '"></label>' +
@@ -687,9 +1145,8 @@
   }
   function edRecalc(fromBox) {
     const o = ed.options[ed.sel];
+    if (!fromBox) $('#edHow').innerHTML = amountHtml('ed', ed.amount, o, ed.unit);
     $('#edQty').textContent = n2(L.countOf(ed.amount, o.amount));
-    if (!fromBox) $('#edAmount').value = n2(ed.amount);
-    $('#edUnit').textContent = o.unit;
     $('#edProtein').value = g(L.proteinFor(ed.amount, o.amount, o.protein));
   }
   function edStep(dir) {
@@ -704,7 +1161,7 @@
     const w = readWhen('ed', e.time, e.date);
     const o = ed.options[ed.sel];
     const typed = parseFloat($('#edProtein').value);
-    e.servingAmount = o.amount; e.unit = o.unit; e.proteinPer = o.protein; e.amount = ed.amount;
+    e.servingAmount = o.amount; e.unit = o.unit; e.proteinPer = o.protein; e.amount = ed.amount; e.enteredUnit = L.otherWeight(ed.unit, o.unit);
     e.protein = Number.isFinite(typed) && typed >= 0 ? L.round2(typed) : L.proteinFor(ed.amount, o.amount, o.protein);
     e.time = w.time; e.date = w.date;
     e.note = $('#edNote').value.trim();
@@ -714,6 +1171,8 @@
     closeSheet();
     toast('Saved');
     celebrateIfCrossed(before);
+    progressIfCrossed(before);
+    rewards();
   }
   function deleteEdit() {
     const i = data.log.findIndex((x) => x.id === ed.id);
@@ -742,11 +1201,12 @@
       '<div class="field"><span>Servings</span>' +
       '<div class="serving-row serving-head"><i>Amount</i><i>Unit</i><i>Protein g</i><i></i></div><div id="fdServings">' + fd.servings.map((s, i) =>
         '<div class="serving-row"><input class="input sv-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(s.amount) + '">' +
-        '<input class="input sv-unit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="bowl" aria-label="Unit" value="' + esc(s.unit) + '">' +
+        '<input class="input sv-unit" data-in="fd-unit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="bowl" aria-label="Unit" value="' + esc(s.unit) + '">' +
         '<input class="input sv-protein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(s.protein) + '">' +
-        '<button type="button" class="iconbtn sv-x" data-act="fd-serving-x" data-i="' + i + '" aria-label="Remove serving"' + (fd.servings.length < 2 ? ' disabled' : '') + '>' + ico('close') + '</button></div>').join('') +
+        '<button type="button" class="iconbtn sv-x" data-act="fd-serving-x" data-i="' + i + '" aria-label="Remove serving"' + (fd.servings.length < 2 ? ' disabled' : '') + '>' + ico('close') + '</button>' +
+        '<div class="sv-weight"' + (L.isWeight(s.unit) ? '' : ' hidden') + '><span>Weighed in</span>' + unitSwitch('fd-weight', s.unit, ' data-i="' + i + '"') + '</div></div>').join('') +
       '</div><button type="button" class="btn text" data-act="fd-serving-add">' + ico('plus') + 'Add serving</button>' +
-      '<small class="hint">For example 350 ml = 10 g, or 1 roti = 6 g. The first serving is the one a single tap logs.</small></div>' +
+      '<small class="hint">For example 350 ml = 10 g, or 1 roti = 6 g. A weight in g or oz can be logged in either. The first serving is the one a single tap logs.</small></div>' +
       '<label class="tick"><input type="checkbox" id="fdUsual"' + (fd.usual ? ' checked' : '') + '><span>Show in usuals</span></label>' +
       '<button type="button" class="btn primary wide" data-act="fd-save">Save</button>' +
       (fd.id ? '<button type="button" class="btn ghost wide" data-act="fd-archive">' + (fd.archived ? 'Bring back from archive' : 'Archive') + '</button>' : '');
@@ -781,6 +1241,59 @@
     toast('Saved ' + name);
   }
 
+  /* ---------- Elyana's basket: carrots, keepsakes, dress-up ---------- */
+  const CARROT_KINDS = [['plain', 'carrots'], ['golden', 'golden'], ['sparkly', 'sparkly']];
+  function openBasket() {
+    if (syncBadges().length) persist();
+    openSheet('basket', basketHtml());
+  }
+  function basketHtml() {
+    const c = L.carrots(L.totalsByDay(data.log), data.settings);
+    const mood = L.goalState(L.dayTotal(data.log, today), data.settings).mood;
+    const have = L.BADGES.filter((b) => data.badges[b.id]).length;
+    return '<h2 class="sheet-title">Elyana\'s basket</h2>' +
+      '<div class="basket-top"><div class="basket-ely" id="basketEly">' + elyanaSvg(mood, data.settings.accessory) + '</div>' +
+      '<div class="carrots">' + CARROT_KINDS.map((k) => '<div class="carrot carrot-' + k[0] + '"><span class="carrot-art">' + ico('carrot') + (k[0] === 'sparkly' ? '<i class="carrot-spark"></i>' : '') + '</span>' +
+        '<b>' + c[k[0]] + '</b><span>' + k[1] + '</span></div>').join('') + '</div></div>' +
+      '<p class="hint center basket-note">A carrot for every day with a bite: golden on goal days, sparkly on great days.</p>' +
+      '<h3 class="sheet-sub split-sub">Keepsakes<small>' + have + ' of ' + L.BADGES.length + '</small></h3>' +
+      '<div class="shelf" id="shelf">' + L.BADGES.map((b) => '<button type="button" class="keep ' + (data.badges[b.id] ? 'keep-on' : 'keep-soon') + '" data-act="keep" data-id="' + b.id + '" aria-label="' + esc(b.name) + '">' +
+        '<span class="keep-art">' + ico(b.icon) + '</span><span class="keep-name">' + esc(b.name) + '</span></button>').join('') + '</div>' +
+      '<div class="keep-info" id="keepInfo"><span class="tip-hint">Tap a keepsake to read about it</span></div>' +
+      '<h3 class="sheet-sub">Dress-up</h3><p class="hint">Pick what Elyana wears. It is saved with your data.</p>' +
+      '<div class="wardrobe" id="wardrobe">' + wardrobeHtml(c) + '</div>';
+  }
+  function wardrobeHtml(c) {
+    return [{ id: '', name: 'Just Elyana', hint: '' }].concat(L.ACCESSORIES).map((a) => {
+      const open = !a.id || L.accessoryOpen(a, c, data.badges);
+      const on = (data.settings.accessory || '') === a.id;
+      return '<button type="button" class="ward' + (on ? ' ward-on' : '') + (open ? '' : ' ward-soon') + '" data-act="wear" data-id="' + a.id + '" aria-pressed="' + on + '">' +
+        '<span class="ward-art">' + elyanaSvg('smiling', a.id, 'head') + '</span><span class="ward-name">' + esc(a.name) + '</span>' +
+        '<span class="ward-hint">' + esc(open ? (on ? 'Wearing' : '') : a.hint) + '</span></button>';
+    }).join('');
+  }
+  function showKeepsake(id) {
+    const b = badgeById(id);
+    if (!b) return;
+    const when = data.badges[id];
+    const box = $('#keepInfo');
+    box.innerHTML = '<span class="keep-art ' + (when ? 'keep-on' : 'keep-soon') + '">' + ico(b.icon) + '</span><span class="tip-text tip-stack"><b></b><span></span></span>';
+    $('b', box).textContent = b.name;
+    $('.tip-stack span', box).textContent = when ? b.desc + ' Earned ' + L.shortDate(when, today) + '.' : b.hint;
+    document.querySelectorAll('#shelf .keep').forEach((k) => k.classList.toggle('keep-sel', k.dataset.id === id));
+  }
+  function wear(id) {
+    const a = L.accessoryById(id);
+    const c = L.carrots(L.totalsByDay(data.log), data.settings);
+    if (id && !L.accessoryOpen(a, c, data.badges)) { toast(a.hint); return; }
+    if ((data.settings.accessory || '') === id) return;
+    data.settings.accessory = id;
+    changed();
+    const mood = L.goalState(L.dayTotal(data.log, today), data.settings).mood;
+    $('#basketEly').innerHTML = elyanaSvg(mood, id);
+    $('#wardrobe').innerHTML = wardrobeHtml(c);
+  }
+
   /* ---------- settings ---------- */
   function openSettings() {
     const s = data.settings;
@@ -791,6 +1304,10 @@
       '<label class="field"><span>Great goal (g)</span><input class="input" id="stGreat" data-in="settings" type="number" inputmode="decimal" min="1" step="1" value="' + esc(g(s.greatGoal)) + '"></label></div>' +
       '<div class="field"><span>Celebrations</span><div class="seg" id="stCeleb">' + L.CELEBRATION_LEVELS.map((c) =>
         '<button type="button" class="seg-btn' + (c === s.celebrations ? ' seg-on' : '') + '" data-act="st-celeb" data-level="' + c + '">' + c.charAt(0).toUpperCase() + c.slice(1) + '</button>').join('') + '</div></div>' +
+      '<h3 class="sheet-sub">Pregnancy</h3><p class="hint">Optional. With a date here, Today shows the week and Stats can show pregnancy weeks and trimesters.</p>' +
+      '<div class="row2"><label class="field"><span>Start date</span><input class="input" id="stPregStart" data-in="settings" type="date" value="' + esc(s.pregStart) + '"></label>' +
+      '<label class="field"><span>Due date</span><input class="input" id="stPregDue" data-in="settings" type="date" value="' + esc(s.pregDue) + '"></label></div>' +
+      '<div id="pregOffer">' + pregOfferHtml() + '</div>' +
       '<h3 class="sheet-sub">Backup</h3><p class="hint">Saved to a spreadsheet called "' + SHEET_NAME + '" in your own Google Drive. <b id="backupLine">' + esc(p[1] + (p[2] ? ' · ' + p[2] : '')) + '</b></p>' +
       '<div class="btn-grid"><button type="button" class="btn soft" data-act="st-backup">Back up now</button><button type="button" class="btn soft" data-act="st-restore">Restore from backup</button>' +
       '<button type="button" class="btn soft" data-act="st-export">Export file</button><button type="button" class="btn soft" data-act="st-import">Import file</button></div>' +
@@ -802,12 +1319,21 @@
     const name = $('#stName');
     if (!name) return;
     const s = data.settings;
-    const next = { name: name.value.trim(), goal: L.num($('#stGoal').value, s.goal), greatGoal: L.num($('#stGreat').value, s.greatGoal) };
+    const date = (sel) => { const v = $(sel).value; return L.isDateKey(v) ? v : ''; };
+    const next = { name: name.value.trim(), goal: L.num($('#stGoal').value, s.goal), greatGoal: L.num($('#stGreat').value, s.greatGoal), pregStart: date('#stPregStart'), pregDue: date('#stPregDue') };
     if (!(next.goal > 0)) next.goal = s.goal;
     if (!(next.greatGoal > 0)) next.greatGoal = s.greatGoal;
-    if (next.name === s.name && next.goal === s.goal && next.greatGoal === s.greatGoal) return;
-    s.name = next.name; s.goal = next.goal; s.greatGoal = next.greatGoal;
+    $('#pregOffer').innerHTML = pregOfferHtml(next);
+    if (['name', 'goal', 'greatGoal', 'pregStart', 'pregDue'].every((k) => next[k] === s[k])) return;
+    Object.assign(s, next);
     changed();
+  }
+  /* With one pregnancy date filled and the other empty, offer the other at 280 days (editable after). */
+  function pregOfferHtml(v) {
+    const o = v || data.settings;
+    if (o.pregStart && !o.pregDue) return '<button type="button" class="btn text" data-act="st-preg-fill" data-field="stPregDue" data-v="' + L.addDays(o.pregStart, L.PREG_DAYS) + '">Fill the due date: ' + esc(L.shortDate(L.addDays(o.pregStart, L.PREG_DAYS), today)) + '</button>';
+    if (o.pregDue && !o.pregStart) return '<button type="button" class="btn text" data-act="st-preg-fill" data-field="stPregStart" data-v="' + L.addDays(o.pregDue, -L.PREG_DAYS) + '">Fill the start date: ' + esc(L.shortDate(L.addDays(o.pregDue, -L.PREG_DAYS), today)) + '</button>';
+    return '';
   }
 
   /* ---------- little notes: her own welcome message and lines for Elyana (kept in her data) ---------- */
@@ -836,6 +1362,11 @@
     data.log = incoming.log;
     data.settings = incoming.settings;
     data.meta.celebrated = incoming.celebrated || {};
+    data.dayNotes = incoming.dayNotes || {};
+    data.weekNotes = incoming.weekNotes || {};
+    data.pregNotes = incoming.pregNotes || {};
+    data.badges = incoming.badges || {};
+    syncBadges();
     shown = { key: '', total: 0 };
   }
   function exportFile() {
@@ -849,18 +1380,49 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     toast('Export file saved');
   }
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+  /* Import asks how: "Add to what's here" (the default) merges without taking anything away;
+     "Replace everything" swaps all the data for the file's, after a second confirm. Neither ever
+     fires a goal moment: imported days are past days, and nothing here compares totals. */
   async function importFile(file) {
     let incoming;
     try { incoming = L.importDoc(JSON.parse(await file.text())); }
     catch (e) { toast('That file does not look like a Noshnama export.'); return; }
-    const n = incoming.log.length;
-    const ok = await ask({ title: 'Import this file?', body: 'It has ' + n + (n === 1 ? ' entry' : ' entries') + ' and ' + incoming.foods.length + ' foods. It replaces what is on this phone now.', ok: 'Import' });
-    if (!ok) return;
-    replaceData(incoming);
+    const n = incoming.log.length, nf = incoming.foods.length;
+    const choice = await ask({
+      title: 'Import this file?',
+      body: 'It has ' + plural(n, 'entry', 'entries') + (nf ? ' and ' + plural(nf, 'food', 'foods') : '') + '. Add it to what is on this phone, or replace everything?',
+      ok: "Add to what's here", alt: 'Replace everything'
+    });
+    if (!choice) return;
+    if (choice === 'alt') {
+      if (!nf) { toast('This file has entries and no foods, so use Add to bring them in'); return; }
+      const sure = await ask({ title: 'Replace everything?', body: 'The file has ' + plural(n, 'entry', 'entries') + ' and ' + plural(nf, 'food', 'foods') + '. It replaces what is on this phone now.', ok: 'Replace everything' });
+      if (!sure) return;
+      replaceData(incoming);
+      changed();
+      closeSheet(true);
+      render();
+      toast('Imported');
+      return;
+    }
+    const merged = L.mergeImport(data, incoming);
+    const a = merged.added;
+    if (!a.entries && !a.foods && !a.notes) { toast('Everything in that file is already here'); return; }
+    data.foods = merged.foods;
+    data.log = merged.log;
+    data.dayNotes = merged.dayNotes; data.weekNotes = merged.weekNotes; data.pregNotes = merged.pregNotes;
+    const keeps = syncBadges();
+    shown = { key: '', total: 0 };
     changed();
     closeSheet(true);
     render();
-    toast('Imported');
+    const parts = [];
+    if (a.entries) parts.push(plural(a.entries, 'entry', 'entries') + ' from ' + plural(a.days, 'day', 'days'));
+    if (a.foods) parts.push(plural(a.foods, 'food', 'foods'));
+    if (a.notes) parts.push(plural(a.notes, 'note', 'notes'));
+    /* one quiet toast; keepsakes the imported days earned join the basket without their own moments */
+    toast('Added ' + parts.join(', ').replace(/, ([^,]*)$/, ' and $1') + (keeps.length ? '. ' + plural(keeps.length, 'keepsake', 'keepsakes') + ' joined Elyana\'s basket' : ''), { ms: 5000 });
   }
 
   /* ================= Google: token, sign-in curtain ================= */
@@ -1002,10 +1564,16 @@
     const found = await api(DRIVE_API + '?q=' + q + '&fields=files(id,name)&orderBy=modifiedTime%20desc');
     return found.files && found.files.length ? found.files[0].id : '';
   }
+  /* Reads the tabs that exist (a backup made before v1.2 has no Notes tab). */
   async function readSheets(id) {
-    const r = await api(SHEETS_API + '/' + id + '/values:batchGet?' + L.TABS.map((t) => 'ranges=' + t).join('&') + '&valueRenderOption=UNFORMATTED_VALUE');
+    const info = await api(SHEETS_API + '/' + id + '?fields=sheets.properties.title');
+    const have = (info.sheets || []).map((x) => x.properties && x.properties.title);
+    const names = L.TABS.filter((t) => have.includes(t));
     const tabs = {};
-    L.TABS.forEach((t, i) => { tabs[t] = (r.valueRanges && r.valueRanges[i] && r.valueRanges[i].values) || []; });
+    if (names.length) {
+      const r = await api(SHEETS_API + '/' + id + '/values:batchGet?' + names.map((t) => 'ranges=' + t).join('&') + '&valueRenderOption=UNFORMATTED_VALUE');
+      names.forEach((t, i) => { tabs[t] = (r.valueRanges && r.valueRanges[i] && r.valueRanges[i].values) || []; });
+    }
     return L.fromSheets(tabs);
   }
   /* Which spreadsheet to write to. An existing backup that this phone has never written is not
@@ -1196,12 +1764,28 @@
   /* ================= events ================= */
   const acts = {
     'tab': (el) => { tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+    'st-range': (el) => { stv.range = el.dataset.v; stv.anchor = ''; stv.sel = ''; stv.all = false; render(); },
+    'range-prev': () => { const a = stv.anchor || today; stv.anchor = stv.range === 'month' ? L.addMonths(a, -1) : L.addDays(a, -7); stv.sel = ''; render(); },
+    'range-next': () => {
+      const a = stv.anchor || today, next = stv.range === 'month' ? L.addMonths(a, 1) : L.addDays(a, 7);
+      stv.anchor = next >= today ? '' : next; stv.sel = ''; render();
+    },
+    'bar': (el) => selectBar(el),
+    'view-day': (el) => openDay(el.dataset.key),
+    'view-week': (el) => { stv.range = 'week'; stv.anchor = el.dataset.key.slice(1); stv.sel = ''; render(); window.scrollTo(0, 0); },
+    'cal-prev': () => { stv.cal = L.addMonths(stv.cal || today, -1); render(); },
+    'cal-next': () => { const n = L.addMonths(stv.cal || today, 1); stv.cal = n >= L.monthStart(today) ? '' : n; render(); },
+    'cal-day': (el) => openDay(el.dataset.key),
+    'src-sort': (el) => { stv.sort = el.dataset.v; render(); },
+    'src-by': (el) => { stv.by = el.dataset.v; render(); },
+    'src-all': () => { stv.all = !stv.all; render(); },
     'fab': () => (tab === 'foods' ? openFood('') : openQuickAdd()),
     'settings': () => openSettings(),
     'pill': () => pillTap(),
     'sheet-close': () => closeSheet(false),
     'modal-ok': () => modalDone && modalDone(true),
     'modal-cancel': () => modalDone && modalDone(false),
+    'modal-alt': () => modalDone && modalDone('alt'),
     'day-prev': () => { viewDate = L.addDays(viewDate, -1); render(); },
     'day-next': () => { if (viewDate < today) { viewDate = L.addDays(viewDate, 1); render(); } },
     'day-pick': () => { const i = $('#dayInput'); i.max = today; i.value = viewDate; try { i.showPicker(); } catch (e) { i.focus(); i.click(); } },
@@ -1210,20 +1794,23 @@
     'toast-minus': () => toastStep(-1),
     'toast-plus': () => toastStep(1),
     'entry': (el) => openEdit(el.dataset.id),
-    'qa-food': (el) => { qa.mode = 'food'; qa.foodId = el.dataset.id; qa.servingId = ''; qa.amount = qaServing().amount; qaRedraw(); },
+    'qa-food': (el) => { qa.mode = 'food'; qa.foodId = el.dataset.id; qa.servingId = ''; qa.unit = ''; qa.amount = qaServing().amount; qaRedraw(); },
     'qa-other': () => { qa.mode = 'other'; iconNow = L.DEFAULT_ICON; qaRedraw(); },
     'qa-back': () => { qa.mode = 'list'; qaRedraw(); },
     'qa-serving': (el) => {
       const count = L.countOf(qa.amount, qaServing().amount);
       qa.servingId = el.dataset.id;
       qa.amount = L.round2(count * qaServing().amount);
+      if (!L.isWeight(qaServing().unit)) qa.unit = '';
       qaRedraw();
     },
+    'qa-unit': (el) => { qa.unit = el.dataset.unit; qaRedraw(); },
     'qa-minus': () => qaStep(-1),
     'qa-plus': () => qaStep(1),
     'qa-add': (el) => {
       qaSync();
-      addEntry(L.makeEntry({ food: qaFood(), serving: qaServing(), amount: qa.amount, date: qa.date, time: qa.time, now: new Date().toISOString() }), el);
+      const s = qaServing(), unit = shownUnit(qa.unit, s);
+      addEntry(L.makeEntry({ food: qaFood(), serving: s, amount: L.convertAmount(qa.amount, s.unit, unit), enteredUnit: unit, date: qa.date, time: qa.time, now: new Date().toISOString() }), el);
     },
     'qa-add-other': (el) => {
       qaSync();
@@ -1246,8 +1833,20 @@
       const count = L.countOf(ed.amount, ed.options[ed.sel].amount);
       ed.sel = Number(el.dataset.i);
       ed.amount = L.round2(count * ed.options[ed.sel].amount);
+      if (!L.isWeight(ed.options[ed.sel].unit)) ed.unit = '';
       document.querySelectorAll('#edServings .chip').forEach((c, i) => c.classList.toggle('chip-on', i === ed.sel));
       edRecalc(false);
+    },
+    'ed-unit': (el) => { ed.unit = el.dataset.unit; edRecalc(false); },
+    'fd-weight': (el) => {
+      fdSync();
+      const sv = fd.servings[Number(el.dataset.i)], to = el.dataset.unit;
+      const from = sv ? L.weightUnit(sv.unit) : '';
+      if (!from || from === to) return;
+      const amount = L.num(sv.amount, 1);
+      sv.amount = n2(L.convertAmount(amount > 0 ? amount : 1, from, to));
+      sv.unit = to;
+      fdRedraw();
     },
     'ed-save': () => saveEdit(),
     'ed-delete': () => deleteEdit(),
@@ -1276,6 +1875,10 @@
       document.querySelectorAll('#stCeleb .seg-btn').forEach((b) => b.classList.toggle('seg-on', b === el));
       changed();
     },
+    'basket': () => openBasket(),
+    'keep': (el) => showKeepsake(el.dataset.id),
+    'wear': (el) => wear(el.dataset.id),
+    'st-preg-fill': (el) => { $('#' + el.dataset.field).value = el.dataset.v; syncSettings(); },
     'st-backup': () => { syncSettings(); backupNow(); },
     'st-restore': () => restoreNow(),
     'st-export': () => { syncSettings(); exportFile(); },
@@ -1302,8 +1905,14 @@
   document.addEventListener('input', (ev) => {
     const kind = ev.target.dataset && ev.target.dataset.in;
     if (kind === 'qa-search') { qa.q = ev.target.value; $('#qaList').innerHTML = qaListHtml(); }
-    else if (kind === 'qa-amount') { qa.amount = typedAmount(ev.target, qa.amount); qaLive(true); }
-    else if (kind === 'ed-amount') { ed.amount = typedAmount(ev.target, ed.amount); edRecalc(true); }
+    else if (kind === 'note') noteTyped(ev.target);
+    else if (kind === 'qa-amount') { const a = typedInServing(ev.target, qaServing(), qa.unit); if (Number.isFinite(a)) qa.amount = a; qaLive(true); }
+    else if (kind === 'ed-amount') { const a = typedInServing(ev.target, ed.options[ed.sel], ed.unit); if (Number.isFinite(a)) ed.amount = a; edRecalc(true); }
+    else if (kind === 'fd-unit') {
+      /* the g / oz switch under a serving shows while its unit is a weight */
+      const row = ev.target.closest('.serving-row'), w = row && $('.sv-weight', row);
+      if (w) { w.hidden = !L.isWeight(ev.target.value); w.querySelectorAll('.unitsw-btn').forEach((b) => { const on = L.weightUnit(ev.target.value) === b.dataset.unit; b.classList.toggle('unitsw-on', on); b.setAttribute('aria-pressed', String(on)); }); }
+    }
   });
   document.addEventListener('change', (ev) => {
     const t = ev.target;
@@ -1312,8 +1921,13 @@
     } else if (t.id === 'importFile') {
       if (t.files && t.files[0]) importFile(t.files[0]);
     } else if (t.dataset && t.dataset.in === 'settings') syncSettings();
+    else if (t.dataset && t.dataset.in === 'note') saveNote(t);
   });
+  /* leaving a note box saves straight away (then a redraw that waited for her can happen) */
+  document.addEventListener('focusout', (ev) => { if (ev.target.classList && ev.target.classList.contains('note-area') && notePending === ev.target) saveNote(ev.target); });
   document.addEventListener('keydown', (ev) => {
+    /* a bar in the Stats chart is an SVG group: Enter or Space picks it like a tap */
+    if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches && ev.target.matches('.bar[tabindex]')) { ev.preventDefault(); selectBar(ev.target); return; }
     if (ev.key !== 'Escape') return;
     if (modalDone) modalDone(false); else if (sheet) closeSheet(false);
   });
@@ -1324,6 +1938,9 @@
   /* ================= start ================= */
   document.querySelectorAll('[data-ico]').forEach((el) => { el.innerHTML = ico(el.dataset.ico); });
   $('#gear').innerHTML = ico('settings');
+  if (L.num(storedSchema, L.SCHEMA) < L.SCHEMA) persist();
+  /* keepsakes already earned by her history (for example on the first open of v1.2) join quietly */
+  if (syncBadges().length) changed();
   if (!data.meta.seeded) {
     data.foods = L.seedFoods(new Date().toISOString()).concat(data.foods);
     data.meta.seeded = true;

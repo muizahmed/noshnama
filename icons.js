@@ -5,7 +5,7 @@
    Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee
    is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE.
-   Drawn for Noshnama in the same style: roti, yoghurt, corn, dates, kabab, cheese, rice, mango. */
+   Drawn for Noshnama in the same style: roti, yoghurt, corn, dates, kabab, cheese, rice, mango, stats, note, basket, pages, moon, star, crown, paws, ribbon, trophy, rainbow, sunrise, calcheck. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.NoshIcons = factory();
@@ -70,7 +70,20 @@
     "kabab": "<path d=\"M3 21l2.6-2.6\"/><path d=\"M18.4 5.6 21 3\"/><circle cx=\"7.8\" cy=\"16.2\" r=\"2.9\"/><circle cx=\"12\" cy=\"12\" r=\"2.9\"/><circle cx=\"16.2\" cy=\"7.8\" r=\"2.9\"/>",
     "cheese": "<path d=\"M3 12 13.5 5c4 0 7.5 3 7.5 7v7H3Z\"/><path d=\"M3 12h18\"/><circle cx=\"8\" cy=\"15.8\" r=\"1.2\"/><circle cx=\"14.5\" cy=\"16\" r=\"1.6\"/>",
     "rice": "<path d=\"M3 12h18a9 9 0 0 1-18 0Z\"/><path d=\"M6.5 12a5.5 5.5 0 0 1 11 0\"/><path d=\"M10 8.8v.010\"/><path d=\"M13.5 9.5v.010\"/><path d=\"M9 21h6\"/>",
-    "mango": "<path d=\"M12.5 5.5c4.2 0 7 3 7 6.8 0 4.3-3.7 7.2-8 7.2-4 0-7-2.5-7-6 0-4.5 4-8 8-8Z\"/><path d=\"M12.5 5.5C12.3 4.2 13 3.2 14.2 3\"/><path d=\"M14 5.8c1.5-1.3 3.2-1.5 4.8-.800-.700 1.5-2 2.3-3.8 2.2\"/>"
+    "mango": "<path d=\"M12.5 5.5c4.2 0 7 3 7 6.8 0 4.3-3.7 7.2-8 7.2-4 0-7-2.5-7-6 0-4.5 4-8 8-8Z\"/><path d=\"M12.5 5.5C12.3 4.2 13 3.2 14.2 3\"/><path d=\"M14 5.8c1.5-1.3 3.2-1.5 4.8-.800-.700 1.5-2 2.3-3.8 2.2\"/>",
+    "stats": "<path d=\"M4 20h16\"/><rect x=\"5.5\" y=\"12\" width=\"3\" height=\"5\" rx=\"1.2\"/><rect x=\"10.5\" y=\"5\" width=\"3\" height=\"12\" rx=\"1.2\"/><rect x=\"15.5\" y=\"8.5\" width=\"3\" height=\"8.5\" rx=\"1.2\"/>",
+    "note": "<path d=\"M5 19.5h3.5L18.8 9.2a2.3 2.3 0 0 0-3.3-3.3L5.2 16.2Z\"/><path d=\"M14 7.5l3.3 3.3\"/><path d=\"M13 19.5h6\"/>",
+    "basket": "<path d=\"M3.5 10.5h17\"/><path d=\"M5 10.5l1.6 7.6a2 2 0 0 0 2 1.6h6.8a2 2 0 0 0 2-1.6l1.6-7.6\"/><path d=\"M7.5 10.5a4.5 4.5 0 0 1 9 0\"/><path d=\"M9.6 13.5l.4 3.5\"/><path d=\"M14.4 13.5l-.4 3.5\"/><path d=\"M12 13.5v3.5\"/>",
+    "pages": "<path d=\"M12 7.5C10 6 7 5.4 3.5 5.8v12c3.5-.400 6.5.200 8.5 1.7 2-1.5 5-2.1 8.5-1.7v-12C17 5.4 14 6 12 7.5Z\"/><path d=\"M12 7.5v12\"/>",
+    "moon": "<path d=\"M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z\"/><path d=\"M16 4v3\"/><path d=\"M14.5 5.5h3\"/>",
+    "star": "<path d=\"M12 3.5l2.5 5.2 5.6.800-4 4 1 5.6-5.1-2.7-5 2.7 1-5.6-4-4 5.5-.800Z\"/>",
+    "crown": "<path d=\"M4 8.5l3.8 3.5L12 6l4.2 6L20 8.5 18.5 17h-13Z\"/><path d=\"M6 20h12\"/>",
+    "paws": "<path d=\"M12 11.5c3.6 0 6.4 2.6 6.4 5.5 0 2.2-1.8 3.4-3.8 3.4-1 0-1.7-.400-2.6-.400s-1.6.400-2.6.400c-2 0-3.8-1.2-3.8-3.4 0-2.9 2.8-5.5 6.4-5.5Z\"/><circle cx=\"4.6\" cy=\"9.4\" r=\"2.1\"/><circle cx=\"9.3\" cy=\"5.1\" r=\"2.1\"/><circle cx=\"14.7\" cy=\"5.1\" r=\"2.1\"/><circle cx=\"19.4\" cy=\"9.4\" r=\"2.1\"/>",
+    "ribbon": "<circle cx=\"12\" cy=\"9\" r=\"5.5\"/><circle cx=\"12\" cy=\"9\" r=\"2.3\"/><path d=\"M8.6 13.3 7 21l5-2.6 5 2.6-1.6-7.7\"/>",
+    "trophy": "<path d=\"M8 4h8v5a4 4 0 0 1-8 0Z\"/><path d=\"M8 5.5H5.5A2.5 2.5 0 0 0 8 10\"/><path d=\"M16 5.5h2.5A2.5 2.5 0 0 1 16 10\"/><path d=\"M12 13v3.5\"/><path d=\"M10 16.5h4V20h-4Z\"/><path d=\"M8.5 20h7\"/>",
+    "rainbow": "<path d=\"M3.5 17.5a8.5 8.5 0 0 1 17 0\"/><path d=\"M7 17.5a5 5 0 0 1 10 0\"/><path d=\"M10.5 17.5a1.5 1.5 0 0 1 3 0\"/>",
+    "sunrise": "<path d=\"M3 18h18\"/><path d=\"M7 18a5 5 0 0 1 10 0\"/><path d=\"M12 6.5v3\"/><path d=\"M5.6 9.6l1.8 1.8\"/><path d=\"M18.4 9.6l-1.8 1.8\"/><path d=\"M8.5 21h7\"/>",
+    "calcheck": "<rect x=\"4\" y=\"5.5\" width=\"16\" height=\"14.5\" rx=\"2.5\"/><path d=\"M4 10h16\"/><path d=\"M8.5 3.5v4\"/><path d=\"M15.5 3.5v4\"/><path d=\"M9 15l2 2 4-4\"/>"
   };
   const FOOD = ["roti","rice","wheat","croissant","sandwich","milk","yoghurt","cheese","egg","egg-fried","fish","shrimp","drumstick","beef","ham","kabab","burger","pizza","soup","pot","salad","bean","nut","corn","carrot","leafy","sprout","dates","apple","banana","mango","cherry","grape","citrus","cookie","cake","donut","dessert","ice-cream","candy","popcorn","coffee","glass","soda","utensils"];
   const has = (key) => Object.prototype.hasOwnProperty.call(PATHS, key);
