@@ -1242,7 +1242,7 @@
   }
 
   /* ---------- Elyana's basket: carrots, keepsakes, dress-up ---------- */
-  const CARROT_KINDS = [['plain', 'carrots'], ['golden', 'golden'], ['sparkly', 'sparkly']];
+  const CARROT_KINDS = [['plain', 'everyday'], ['golden', 'golden'], ['sparkly', 'sparkly']];
   function openBasket() {
     if (syncBadges().length) persist();
     openSheet('basket', basketHtml());

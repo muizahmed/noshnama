@@ -7,7 +7,7 @@
   'use strict';
 
   /* Bump on every release. index.html must reference each local asset as file?v=<this>. */
-  const APP_VERSION = '1.2.0';
+  const APP_VERSION = '1.2.1';
   /* Shape of the stored document. 2: servings are amount + unit, foods have an icon key, entries store amounts.
      3 (v1.2): entries may remember the weight unit she typed in (enteredUnit), day and week notes, keepsakes,
      and the seed Kabab is weighed in ounces (migrate() moves an untouched v2 Kabab over).
