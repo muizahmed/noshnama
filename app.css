@@ -353,6 +353,7 @@ h1, h2, h3, p { margin: 0; font-weight: 400; }
 .serving-row { display: grid; grid-template-columns: minmax(58px, 0.8fr) minmax(0, 1.2fr) minmax(58px, 0.8fr) 44px; gap: 6px; align-items: center; margin-bottom: 6px; }
 .serving-row .input { padding-left: 12px; padding-right: 6px; }
 .serving-head { margin-bottom: 2px; }
+.serving-row.sv-solo { grid-template-columns: minmax(58px, 0.8fr) minmax(0, 1.2fr) minmax(58px, 0.8fr); }
 /* g / oz: a weight serving can be shown and typed in either */
 .unitsw { display: inline-flex; flex: 0 0 auto; margin-left: auto; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 2px; }
 .unitsw-btn { min-width: 44px; height: 44px; border-radius: 999px; font-size: 14px; color: var(--ink-soft); }

@@ -1042,7 +1042,7 @@
   let qa = null;
   function openQuickAdd() {
     checkDay();
-    qa = { mode: 'list', q: '', foodId: '', servingId: '', amount: 1, unit: '', time: L.timeKey(new Date()), date: viewDate, other: { name: '', protein: '', save: false } };
+    qa = { mode: 'list', q: '', foodId: '', servingId: '', amount: 1, unit: '', time: L.timeKey(new Date()), date: viewDate, other: { name: '', svAmount: '1', svUnit: 'serving', protein: '', save: false } };
     openSheet('qa', quickAddHtml());
   }
   function qaListHtml() {
@@ -1055,7 +1055,12 @@
       (foods.length ? '' : '<div class="empty">Nothing by that name yet. Try "Something else" above.</div>');
   }
   const qaFood = () => data.foods.find((f) => f.id === qa.foodId);
-  const qaServing = () => { const f = qaFood(); return f.servings.find((s) => s.id === qa.servingId) || f.servings[0]; };
+  /* "Something else" has its own serving, typed in like the food editor's (1 serving = the protein by default). */
+  const otherServing = () => {
+    const a = parseFloat(qa.other.svAmount);
+    return { amount: Number.isFinite(a) && a > 0 ? L.round2(a) : 1, unit: qa.other.svUnit.trim() || 'serving', protein: L.round2(Math.max(0, L.num(qa.other.protein))) };
+  };
+  const qaServing = () => { if (qa.mode === 'other') return otherServing(); const f = qaFood(); return f.servings.find((s) => s.id === qa.servingId) || f.servings[0]; };
   const qaProtein = () => { const s = qaServing(); return L.proteinFor(qa.amount, s.amount, s.protein); };
   function quickAddHtml() {
     if (qa.mode === 'list') {
@@ -1067,11 +1072,17 @@
     if (qa.mode === 'other') {
       return back + '<h2 class="sheet-title">Something else</h2>' +
         '<label class="field"><span>What was it?</span><input class="input" id="qaName" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Chana chaat" value="' + esc(qa.other.name) + '"></label>' +
-        '<label class="field"><span>Protein (g)</span><input class="input" id="qaGrams" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" value="' + esc(qa.other.protein) + '"></label>' +
+        '<div class="field"><span>Serving</span><div class="serving-row serving-head sv-solo"><i>Amount</i><i>Unit</i><i>Protein g</i></div>' +
+        '<div class="serving-row sv-solo"><input class="input sv-amount" id="qaSvAmount" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(qa.other.svAmount) + '">' +
+        '<input class="input sv-unit" id="qaSvUnit" data-in="qa-sv" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="serving" aria-label="Unit" value="' + esc(qa.other.svUnit) + '">' +
+        '<input class="input sv-protein" id="qaGrams" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(qa.other.protein) + '"></div>' +
+        '<small class="hint">For example 1 plate = 8 g, or 100 g = 31 g.</small></div>' +
+        '<div class="field"><span>How much</span><div id="qaHow">' + amountHtml('qa', qa.amount, otherServing(), qa.unit) + '</div>' +
+        '<div class="live" id="qaLive">' + g(qaProtein()) + ' g protein</div></div>' +
         iconPickerHtml(iconNow) +
         '<label class="tick"><input type="checkbox" id="qaSave"' + (qa.other.save ? ' checked' : '') + '><span>Save to my foods</span></label>' +
         whenFields('qa', qa.time, qa.date) +
-        '<button type="button" class="btn primary wide" data-act="qa-add-other">Add</button>';
+        '<button type="button" class="btn primary wide" data-act="qa-add-other" id="qaAdd">Add ' + g(qaProtein()) + ' g</button>';
     }
     const f = qaFood(), s = qaServing();
     return back + '<div class="picked">' + bubble(f.icon, 'big') + '<h2 class="sheet-title">' + esc(f.name) + '</h2></div>' +
@@ -1085,7 +1096,21 @@
   function qaSync() {
     const w = readWhen('qa', qa.time, qa.date);
     qa.time = w.time; qa.date = w.date;
-    if ($('#qaName')) { qa.other.name = $('#qaName').value; qa.other.protein = $('#qaGrams').value; qa.other.save = $('#qaSave').checked; }
+    if ($('#qaName')) {
+      qa.other.name = $('#qaName').value; qa.other.svAmount = $('#qaSvAmount').value; qa.other.svUnit = $('#qaSvUnit').value;
+      qa.other.protein = $('#qaGrams').value; qa.other.save = $('#qaSave').checked;
+    }
+  }
+  /* Typing in the one-off's serving: the count stays as it was (1 serving of 1 plate becomes 1 serving of
+     2 plates), the g / oz switch comes and goes with the unit, and the protein line follows. */
+  function qaServingTyped() {
+    const before = otherServing(), count = L.countOf(qa.amount, before.amount);
+    qa.other.svAmount = $('#qaSvAmount').value; qa.other.svUnit = $('#qaSvUnit').value; qa.other.protein = $('#qaGrams').value;
+    const s = otherServing();
+    if (s.amount !== before.amount) qa.amount = L.round2(count * s.amount);
+    if (!L.isWeight(s.unit)) qa.unit = '';
+    $('#qaHow').innerHTML = amountHtml('qa', qa.amount, s, qa.unit);
+    qaLive(false);
   }
   function qaRedraw() { qaSync(); $('#sheetBody').innerHTML = quickAddHtml(); }
   /* Refreshes the count, amount and protein; the amount box is left alone while she is typing in it. */
@@ -1795,7 +1820,7 @@
     'toast-plus': () => toastStep(1),
     'entry': (el) => openEdit(el.dataset.id),
     'qa-food': (el) => { qa.mode = 'food'; qa.foodId = el.dataset.id; qa.servingId = ''; qa.unit = ''; qa.amount = qaServing().amount; qaRedraw(); },
-    'qa-other': () => { qa.mode = 'other'; iconNow = L.DEFAULT_ICON; qaRedraw(); },
+    'qa-other': () => { qa.mode = 'other'; iconNow = L.DEFAULT_ICON; qa.unit = ''; qa.amount = otherServing().amount; qaRedraw(); },
     'qa-back': () => { qa.mode = 'list'; qaRedraw(); },
     'qa-serving': (el) => {
       const count = L.countOf(qa.amount, qaServing().amount);
@@ -1818,14 +1843,18 @@
       const grams = parseFloat(qa.other.protein);
       if (!name) { toast('What was it? Give it a little name.'); return; }
       if (!Number.isFinite(grams) || grams < 0) { toast('Add the grams of protein.'); return; }
+      const svAmount = parseFloat(qa.other.svAmount);
+      if (!Number.isFinite(svAmount) || svAmount <= 0) { toast('Give the serving an amount, like 1 plate.'); return; }
+      if (!(qa.amount > 0)) { toast('How much was it? Add an amount.'); return; }
       const stamp = new Date().toISOString();
-      const serving = { id: L.uid('s'), amount: 1, unit: 'serving', protein: L.round2(grams) };
+      const s = otherServing(), unit = shownUnit(qa.unit, s);
+      const serving = { id: L.uid('s'), amount: s.amount, unit: s.unit, protein: s.protein };
       let food = null;
       if (qa.other.save) {
         food = { id: L.uid('f'), name: name, icon: iconNow, category: 'Other', servings: [serving], archived: false, usual: true, created: stamp };
         data.foods.push(food);
       }
-      addEntry(L.makeEntry({ food: food, serving: serving, name: name, icon: iconNow, count: 1, date: qa.date, time: qa.time, now: stamp }), el);
+      addEntry(L.makeEntry({ food: food, serving: serving, name: name, icon: iconNow, amount: L.convertAmount(qa.amount, s.unit, unit), enteredUnit: unit, date: qa.date, time: qa.time, now: stamp }), el);
     },
     'ed-minus': () => edStep(-1),
     'ed-plus': () => edStep(1),
@@ -1906,6 +1935,7 @@
     const kind = ev.target.dataset && ev.target.dataset.in;
     if (kind === 'qa-search') { qa.q = ev.target.value; $('#qaList').innerHTML = qaListHtml(); }
     else if (kind === 'note') noteTyped(ev.target);
+    else if (kind === 'qa-sv') qaServingTyped();
     else if (kind === 'qa-amount') { const a = typedInServing(ev.target, qaServing(), qa.unit); if (Number.isFinite(a)) qa.amount = a; qaLive(true); }
     else if (kind === 'ed-amount') { const a = typedInServing(ev.target, ed.options[ed.sel], ed.unit); if (Number.isFinite(a)) ed.amount = a; edRecalc(true); }
     else if (kind === 'fd-unit') {
