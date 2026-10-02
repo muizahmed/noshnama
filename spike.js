@@ -1,7 +1,7 @@
 // Noshnama spike: throwaway page to check Google sign-in, Drive backup and
 // install behaviour on Arooj's phone. Replaced by the real app afterwards.
 
-const CLIENT_ID = 'PASTE_CLIENT_ID_HERE.apps.googleusercontent.com';
+const CLIENT_ID = '829299043445-qvkjmmcbc2mb6res5ri8pgj0kllofid8.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 const SHEET_NAME = 'Noshnama backup (spike)';
 
