@@ -978,6 +978,7 @@
   function closeSheet(dropFields) {
     if (!sheet) return;
     if (sheet === 'settings' && dropFields !== true) syncSettings();
+    if (sheet === 'promo') stopPromo();
     sheet = null;
     const wrap = $('#sheetWrap');
     wrap.classList.remove('open');
@@ -1343,7 +1344,8 @@
       '<button type="button" class="btn soft" data-act="st-export">Export file</button><button type="button" class="btn soft" data-act="st-import">Import file</button></div>' +
       '<button type="button" class="btn ghost wide" data-act="st-signout">Sign out</button>' +
       '<p class="tiny center">Noshnama ' + L.APP_VERSION + '</p>' +
-      '<button type="button" class="quiet-link" data-act="st-notes">Little notes</button>');
+      '<button type="button" class="quiet-link" data-act="st-notes">Little notes</button>' +
+      '<button type="button" class="quiet-link" data-act="st-promo">Promo video</button>');
   }
   function syncSettings() {
     const name = $('#stName');
@@ -1385,6 +1387,24 @@
     if (JSON.stringify([w, n]) === JSON.stringify([s.welcomeLines, s.notes])) return;
     s.welcomeLines = w; s.notes = n;
     changed();
+  }
+
+  /* ---------- promo video: plays inside the sheet; nothing is fetched until she presses play ---------- */
+  function openPromo() {
+    syncSettings();
+    sheet = null;
+    const v = '?v=' + L.APP_VERSION;
+    openSheet('promo', '<h2 class="sheet-title">Promo video</h2>' +
+      '<video class="promo-video" id="promoVideo" controls playsinline preload="none" poster="media/promo-poster.jpg' + v + '" src="media/promo.mp4' + v + '"></video>');
+  }
+  /* Closing the sheet stops the sound at once: pause, drop the file, take the player out. */
+  function stopPromo() {
+    const video = $('#promoVideo');
+    if (!video) return;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.remove();
   }
 
   function replaceData(incoming) {
@@ -1919,6 +1939,7 @@
     'st-import': () => { const i = $('#importFile'); i.value = ''; i.click(); },
     'st-signout': () => { syncSettings(); signOut(); },
     'st-notes': () => openNotes(),
+    'st-promo': () => openPromo(),
     'ln-save': () => { saveNotes(); closeSheet(); toast('Little notes saved'); },
     'ln-welcome': () => { saveNotes(); data.meta.welcomed = false; persist(); closeSheet(); enterApp(); },
     'sign-in': () => signIn(),

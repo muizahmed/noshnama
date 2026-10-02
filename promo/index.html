@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FBF6F0">
+<title>Noshnama</title>
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="Noshnama">
+<meta property="og:description" content="A warm little protein diary.">
+<meta property="og:url" content="https://noshnama.muizahmed.com/promo/">
+<meta property="og:image" content="https://noshnama.muizahmed.com/media/promo-poster.jpg?v=1.2.5">
+<meta property="og:image:width" content="720">
+<meta property="og:image:height" content="1280">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="preload" href="../fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* The promo page: public, on its own. It loads no app code and keeps nothing. */
+@font-face { font-family: 'Instrument Serif'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/instrument-serif-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; font-display: swap; src: url('../fonts/instrument-serif-latin-400-italic.woff2') format('woff2'); }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background-color: #FBF6F0; color: #5C4338; font-family: 'Instrument Serif', 'Iowan Old Style', Georgia, serif; -webkit-font-smoothing: antialiased; }
+.promo { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom)); }
+.promo-brand { margin: 0; font-size: 34px; line-height: 1; font-weight: 400; font-style: italic; color: #A9566B; }
+/* 9:16 player: as wide as the screen allows, never taller than the room left under the wordmark */
+.promo-video { display: block; width: min(100%, 420px, calc((100vh - 150px) * 9 / 16)); width: min(100%, 420px, calc((100dvh - 150px) * 9 / 16)); height: auto; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 24px; border: 1px solid #EEE3DA; background: #FFFDFA; box-shadow: 0 18px 44px rgba(92, 67, 56, 0.12); }
+.promo-line { margin: 0; font-size: 19px; line-height: 1.2; color: #9C877B; }
+</style>
+</head>
+<body>
+<main class="promo">
+  <h1 class="promo-brand">Noshnama</h1>
+  <video class="promo-video" controls playsinline preload="metadata" poster="../media/promo-poster.jpg?v=1.2.5" src="../media/promo.mp4?v=1.2.5"></video>
+  <p class="promo-line">A warm little protein diary.</p>
+</main>
+</body>
+</html>
