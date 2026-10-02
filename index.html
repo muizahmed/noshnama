@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#E8588A">
+<title>Noshnama</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+  body { margin: 0; padding: 20px 16px 40px; background: #FFF6F2; color: #4A2E3A; font-family: system-ui, sans-serif; }
+  h1 { margin: 0 0 4px; color: #C2376B; }
+  p { margin: 4px 0 16px; }
+  button { display: block; width: 100%; margin: 10px 0; padding: 14px; border: 0; border-radius: 999px; background: #E8588A; color: #fff; font-size: 16px; font-weight: 600; }
+  button:active { transform: scale(0.97); }
+  dl { background: #fff; border-radius: 20px; padding: 14px 16px; margin: 16px 0; }
+  dt { font-size: 12px; opacity: 0.7; margin-top: 8px; }
+  dd { margin: 2px 0 0; word-break: break-all; }
+  pre { background: #fff; border-radius: 20px; padding: 14px 16px; white-space: pre-wrap; word-break: break-word; font-size: 13px; min-height: 120px; }
+  a { color: #C2376B; }
+</style>
+</head>
+<body>
+<h1>Noshnama</h1>
+<p>Test page. The real app replaces this.</p>
+
+<button id="signin">1. Sign in with Google</button>
+<button id="backup">2. Write backup sheet</button>
+<button id="renew">3. Renew without a screen</button>
+<p><a id="sheet" target="_blank" rel="noopener"></a></p>
+
+<dl>
+  <dt>Signed in as</dt><dd id="who"></dd>
+  <dt>Email hash (send this to Muiz)</dt><dd id="hash">sign in to see it</dd>
+  <dt>Opened as</dt><dd id="mode"></dd>
+  <dt>Storage kept permanently</dt><dd id="persist"></dd>
+  <dt>Times opened on this phone</dt><dd id="opens"></dd>
+  <dt>Last Google pass</dt><dd id="tokenAge"></dd>
+</dl>
+
+<pre id="log"></pre>
+
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="spike.js"></script>
+</body>
+</html>
