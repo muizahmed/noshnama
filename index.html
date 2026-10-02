@@ -2,46 +2,55 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#E8588A">
+<meta name="theme-color" content="#FBF6F0">
 <title>Noshnama</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
-<style>
-  body { margin: 0; padding: 20px 16px 40px; background: #FFF6F2; color: #4A2E3A; font-family: system-ui, sans-serif; }
-  h1 { margin: 0 0 4px; color: #C2376B; }
-  p { margin: 4px 0 16px; }
-  button { display: block; width: 100%; margin: 10px 0; padding: 14px; border: 0; border-radius: 999px; background: #E8588A; color: #fff; font-size: 16px; font-weight: 600; }
-  button:active { transform: scale(0.97); }
-  dl { background: #fff; border-radius: 20px; padding: 14px 16px; margin: 16px 0; }
-  dt { font-size: 12px; opacity: 0.7; margin-top: 8px; }
-  dd { margin: 2px 0 0; word-break: break-all; }
-  pre { background: #fff; border-radius: 20px; padding: 14px 16px; white-space: pre-wrap; word-break: break-word; font-size: 13px; min-height: 120px; }
-  a { color: #C2376B; }
-</style>
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preload" href="fonts/outfit-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css?v=1.1.1">
 </head>
 <body>
-<h1>Noshnama</h1>
-<p>Test page. The real app replaces this.</p>
 
-<button id="signin">1. Sign in with Google</button>
-<button id="backup">2. Write backup sheet</button>
-<button id="renew">3. Renew without a screen</button>
-<p><a id="sheet" target="_blank" rel="noopener"></a></p>
+<div id="curtain" class="curtain" hidden></div>
+<div id="welcome" class="curtain" hidden></div>
 
-<dl>
-  <dt>Signed in as</dt><dd id="who"></dd>
-  <dt>Email hash (send this to Muiz)</dt><dd id="hash">sign in to see it</dd>
-  <dt>Opened as</dt><dd id="mode"></dd>
-  <dt>Storage kept permanently</dt><dd id="persist"></dd>
-  <dt>Times opened on this phone</dt><dd id="opens"></dd>
-  <dt>Last Google pass</dt><dd id="tokenAge"></dd>
-</dl>
+<div id="app" class="app" hidden>
+  <header class="top">
+    <div class="brand">Noshnama</div>
+    <button id="pill" class="pill" data-act="pill" type="button"></button>
+    <button class="iconbtn" data-act="settings" type="button" aria-label="Settings" id="gear"></button>
+  </header>
+  <main>
+    <div id="viewToday"></div>
+    <div id="viewFoods" hidden></div>
+  </main>
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" class="tab" data-act="tab" data-tab="today"><span class="tab-ico" data-ico="today"></span><span>Today</span></button>
+    <button type="button" class="fab" data-act="fab" aria-label="Add"><span data-ico="plus"></span></button>
+    <button type="button" class="tab" data-act="tab" data-tab="foods"><span class="tab-ico" data-ico="foods"></span><span>Foods</span></button>
+  </nav>
+</div>
 
-<pre id="log"></pre>
+<div id="sheetWrap" class="sheet-wrap" hidden>
+  <div class="backdrop" data-act="sheet-close"></div>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <button class="sheet-x iconbtn" data-act="sheet-close" type="button" aria-label="Close"><span data-ico="close"></span></button>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+<div id="modal" class="modal" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
 
-<script src="https://accounts.google.com/gsi/client"></script>
-<script src="spike.js?v=2"></script>
+<noscript><p style="padding:24px;font-family:system-ui">Please turn on JavaScript to use Noshnama.</p></noscript>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="logic.js?v=1.1.1"></script>
+<script src="icons.js?v=1.1.1"></script>
+<script src="app.js?v=1.1.1"></script>
 </body>
 </html>
