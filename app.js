@@ -259,7 +259,8 @@
     toastTimer = setTimeout(hideToast, o.ms || (o.undo ? 6500 : 3500));
   }
   function hideToast() { clearTimeout(toastTimer); toastEntry = ''; $('#toasts').innerHTML = ''; }
-  const logLine = (e) => 'Yum! ' + e.name + ' × ' + n2(L.entryCount(e)) + ' · ' + g(e.protein) + ' g';
+  /* Counted foods say how many (Roti × 2); measured ones say the amount, as the day list does (Milk 350 ml). */
+  const logLine = (e) => 'Yum! ' + e.name + (L.isCounted(e) ? ' × ' + n2(L.entryCount(e)) : ' ' + L.entryLine(e)) + ' · ' + g(e.protein) + ' g';
   /* The toast after logging: says what was logged, with - / + to change how many, and Undo. */
   function logToast(entry) {
     toast(logLine(entry), {
@@ -1012,8 +1013,9 @@
     if (date > today) date = today;
     return { time: time, date: date };
   }
-  /* "How much": a count stepper and an amount box, kept in step with each other. The amount is held in
-     the serving's unit; a weight serving (g or oz) can be shown and typed in either, with a g / oz switch. */
+  /* "I had": one control, - [amount box + unit] +. The buttons move by half a serving; the box takes any
+     amount. The amount is held in the serving's unit; a weight serving (g or oz) can be shown and typed in
+     either, with a g / oz switch. */
   const shownUnit = (unit, serving) => L.otherWeight(unit, serving.unit) || serving.unit;
   const amountText = (amount, serving, unit) => (L.otherWeight(unit, serving.unit) ? L.fmtWeight(L.convertAmount(amount, serving.unit, unit)) : n2(amount));
   const unitSwitch = (act, current, extra) => '<div class="unitsw" role="group" aria-label="Weigh in grams or ounces">' + ['g', 'oz'].map((u) =>
@@ -1021,15 +1023,17 @@
     ' aria-pressed="' + (L.weightUnit(current) === u) + '">' + u + '</button>').join('') + '</div>';
   const amountHtml = (prefix, amount, serving, unit) =>
     '<div class="qty-row"><div class="stepper"><button type="button" class="step" data-act="' + prefix + '-minus" aria-label="Less">' + ico('minus') + '</button>' +
-    '<output id="' + prefix + 'Qty">' + n2(L.countOf(amount, serving.amount)) + '</output>' +
-    '<button type="button" class="step" data-act="' + prefix + '-plus" aria-label="More">' + ico('plus') + '</button></div>' +
-    '<span class="qty-or">or</span>' +
     '<label class="amount"><input class="input" id="' + prefix + 'Amount" data-in="' + prefix + '-amount" type="number" inputmode="decimal" min="0" step="any" aria-label="Amount" value="' + esc(amountText(amount, serving, unit)) + '">' +
     '<span class="amount-unit" id="' + prefix + 'Unit">' + esc(shownUnit(unit, serving)) + '</span></label>' +
+    '<button type="button" class="step" data-act="' + prefix + '-plus" aria-label="More">' + ico('plus') + '</button></div>' +
     (L.isWeight(serving.unit) ? unitSwitch(prefix + '-unit', shownUnit(unit, serving)) : '') + '</div>';
   /* A typed number in the unit on screen, as an amount in the serving's unit (NaN when the box is empty). */
   const typedInServing = (el, serving, unit) => { const v = typedAmount(el, NaN); return Number.isFinite(v) ? L.convertAmount(v, shownUnit(unit, serving), serving.unit) : NaN; };
   const typedAmount = (el, fallback) => { const v = parseFloat(el.value); return Number.isFinite(v) && v > 0 ? L.round2(v) : fallback; };
+  /* What one serving is worth, in words: "350 ml has 10 g protein". */
+  const perText = (serving) => L.servingLabel(serving) + ' has ' + g(serving.protein) + ' g protein';
+  /* A serving as a sentence to fill in: [350] [ml] has [10] g protein. */
+  const servingSays = (amount, unit, protein) => amount + unit + '<span class="sv-word">has</span>' + protein + '<span class="sv-word">g protein</span>';
 
   let iconNow = L.DEFAULT_ICON;
   function iconPickerHtml(current) {
@@ -1072,12 +1076,12 @@
     if (qa.mode === 'other') {
       return back + '<h2 class="sheet-title">Something else</h2>' +
         '<label class="field"><span>What was it?</span><input class="input" id="qaName" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Chana chaat" value="' + esc(qa.other.name) + '"></label>' +
-        '<div class="field"><span>Serving</span><div class="serving-row serving-head sv-solo"><i>Amount</i><i>Unit</i><i>Protein g</i></div>' +
-        '<div class="serving-row sv-solo"><input class="input sv-amount" id="qaSvAmount" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(qa.other.svAmount) + '">' +
-        '<input class="input sv-unit" id="qaSvUnit" data-in="qa-sv" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="serving" aria-label="Unit" value="' + esc(qa.other.svUnit) + '">' +
-        '<input class="input sv-protein" id="qaGrams" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(qa.other.protein) + '"></div>' +
-        '<small class="hint">For example 1 plate = 8 g, or 100 g = 31 g.</small></div>' +
-        '<div class="field"><span>How much</span><div id="qaHow">' + amountHtml('qa', qa.amount, otherServing(), qa.unit) + '</div>' +
+        '<div class="field"><div class="serving-row sv-solo">' + servingSays(
+          '<input class="input sv-amount" id="qaSvAmount" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(qa.other.svAmount) + '">',
+          '<input class="input sv-unit" id="qaSvUnit" data-in="qa-sv" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="serving" aria-label="Unit" value="' + esc(qa.other.svUnit) + '">',
+          '<input class="input sv-protein" id="qaGrams" data-in="qa-sv" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(qa.other.protein) + '">') + '</div>' +
+        '<small class="hint">For example 1 plate has 8 g, or 100 g has 31 g.</small></div>' +
+        '<div class="field"><span>I had</span><div id="qaHow">' + amountHtml('qa', qa.amount, otherServing(), qa.unit) + '</div>' +
         '<div class="live" id="qaLive">' + g(qaProtein()) + ' g protein</div></div>' +
         iconPickerHtml(iconNow) +
         '<label class="tick"><input type="checkbox" id="qaSave"' + (qa.other.save ? ' checked' : '') + '><span>Save to my foods</span></label>' +
@@ -1086,9 +1090,9 @@
     }
     const f = qaFood(), s = qaServing();
     return back + '<div class="picked">' + bubble(f.icon, 'big') + '<h2 class="sheet-title">' + esc(f.name) + '</h2></div>' +
-      (f.servings.length > 1 ? '<div class="field"><span>Serving</span><div class="chips">' + f.servings.map((x) =>
+      (f.servings.length > 1 ? '<div class="field"><span>Measured by</span><div class="chips">' + f.servings.map((x) =>
         '<button type="button" class="chip' + (x.id === s.id ? ' chip-on' : '') + '" data-act="qa-serving" data-id="' + esc(x.id) + '">' + esc(L.servingLabel(x)) + '<span class="chip-g">' + g(x.protein) + ' g</span></button>').join('') + '</div></div>' : '') +
-      '<div class="field"><span class="split">How much <i class="per">' + esc(L.servingLabel(s)) + ' = ' + g(s.protein) + ' g protein</i></span>' + amountHtml('qa', qa.amount, s, qa.unit) +
+      '<div class="field"><span class="split">I had <i class="per">' + esc(perText(s)) + '</i></span>' + amountHtml('qa', qa.amount, s, qa.unit) +
       '<div class="live" id="qaLive">' + g(qaProtein()) + ' g protein</div></div>' +
       whenFields('qa', qa.time, qa.date) +
       '<button type="button" class="btn primary wide" data-act="qa-add" id="qaAdd">Add ' + g(qaProtein()) + ' g</button>';
@@ -1113,10 +1117,9 @@
     qaLive(false);
   }
   function qaRedraw() { qaSync(); $('#sheetBody').innerHTML = quickAddHtml(); }
-  /* Refreshes the count, amount and protein; the amount box is left alone while she is typing in it. */
+  /* Refreshes the amount and protein; the amount box is left alone while she is typing in it. */
   function qaLive(fromBox) {
     const p = g(qaProtein());
-    $('#qaQty').textContent = n2(L.countOf(qa.amount, qaServing().amount));
     if (!fromBox) $('#qaAmount').value = amountText(qa.amount, qaServing(), qa.unit);
     $('#qaLive').textContent = p + ' g protein';
     $('#qaAdd').textContent = 'Add ' + p + ' g';
@@ -1159,10 +1162,10 @@
     if (sel < 0) { options.unshift({ amount: e.servingAmount, unit: e.unit, protein: e.proteinPer }); sel = 0; }
     ed = { id: id, amount: e.amount, unit: L.otherWeight(e.enteredUnit, e.unit), options: options, sel: sel };
     openSheet('edit', '<div class="picked">' + bubble(e.icon, 'big') + '<h2 class="sheet-title">' + esc(e.name) + '</h2></div>' +
-      (options.length > 1 ? '<div class="field"><span>Serving</span><div class="chips" id="edServings">' + options.map((o, i) =>
+      (options.length > 1 ? '<div class="field"><span>Measured by</span><div class="chips" id="edServings">' + options.map((o, i) =>
         '<button type="button" class="chip' + (i === sel ? ' chip-on' : '') + '" data-act="ed-serving" data-i="' + i + '">' + esc(L.servingLabel(o)) + '<span class="chip-g">' + g(o.protein) + ' g</span></button>').join('') + '</div></div>' : '') +
-      '<div class="field"><span>How much</span><div id="edHow">' + amountHtml('ed', e.amount, options[sel], ed.unit) + '</div></div>' +
-      '<label class="field"><span>Protein (g)</span><input class="input" id="edProtein" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(g(e.protein)) + '"></label>' +
+      '<div class="field"><span class="split">I had <i class="per" id="edPer">' + esc(perText(options[sel])) + '</i></span><div id="edHow">' + amountHtml('ed', e.amount, options[sel], ed.unit) + '</div></div>' +
+      '<label class="field"><span>Protein (g), change if needed</span><input class="input" id="edProtein" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(g(e.protein)) + '"></label>' +
       whenFields('ed', e.time, e.date) +
       '<label class="field"><span>Note</span><input class="input" id="edNote" type="text" maxlength="80" autocomplete="off" placeholder="Anything to remember" value="' + esc(e.note) + '"></label>' +
       '<button type="button" class="btn primary wide" data-act="ed-save">Save</button>' +
@@ -1171,7 +1174,7 @@
   function edRecalc(fromBox) {
     const o = ed.options[ed.sel];
     if (!fromBox) $('#edHow').innerHTML = amountHtml('ed', ed.amount, o, ed.unit);
-    $('#edQty').textContent = n2(L.countOf(ed.amount, o.amount));
+    $('#edPer').textContent = perText(o);
     $('#edProtein').value = g(L.proteinFor(ed.amount, o.amount, o.protein));
   }
   function edStep(dir) {
@@ -1223,15 +1226,17 @@
       iconPickerHtml(iconNow) +
       '<div class="field"><span>Category</span><div class="chips">' + L.CATEGORIES.map((c) =>
         '<button type="button" class="chip' + (c === fd.category ? ' chip-on' : '') + '" data-act="fd-cat" data-cat="' + esc(c) + '">' + esc(c) + '</button>').join('') + '</div></div>' +
-      '<div class="field"><span>Servings</span>' +
-      '<div class="serving-row serving-head"><i>Amount</i><i>Unit</i><i>Protein g</i><i></i></div><div id="fdServings">' + fd.servings.map((s, i) =>
-        '<div class="serving-row"><input class="input sv-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(s.amount) + '">' +
-        '<input class="input sv-unit" data-in="fd-unit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="bowl" aria-label="Unit" value="' + esc(s.unit) + '">' +
-        '<input class="input sv-protein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(s.protein) + '">' +
+      '<div class="field"><span>How it\'s measured</span>' +
+      '<div id="fdServings">' + fd.servings.map((s, i) =>
+        '<div class="serving-row">' + servingSays(
+          '<input class="input sv-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="1" aria-label="Amount" value="' + esc(s.amount) + '">',
+          '<input class="input sv-unit" data-in="fd-unit" type="text" maxlength="16" autocomplete="off" autocapitalize="off" placeholder="bowl" aria-label="Unit" value="' + esc(s.unit) + '">',
+          '<input class="input sv-protein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" aria-label="Protein in grams" value="' + esc(s.protein) + '">') +
+        (i === 0 ? '<small class="sv-tag">A single tap logs this</small>' : '') +
         '<button type="button" class="iconbtn sv-x" data-act="fd-serving-x" data-i="' + i + '" aria-label="Remove serving"' + (fd.servings.length < 2 ? ' disabled' : '') + '>' + ico('close') + '</button>' +
         '<div class="sv-weight"' + (L.isWeight(s.unit) ? '' : ' hidden') + '><span>Weighed in</span>' + unitSwitch('fd-weight', s.unit, ' data-i="' + i + '"') + '</div></div>').join('') +
-      '</div><button type="button" class="btn text" data-act="fd-serving-add">' + ico('plus') + 'Add serving</button>' +
-      '<small class="hint">For example 350 ml = 10 g, or 1 roti = 6 g. A weight in g or oz can be logged in either. The first serving is the one a single tap logs.</small></div>' +
+      '</div><button type="button" class="btn text" data-act="fd-serving-add">' + ico('plus') + 'Add another way to measure it</button>' +
+      '<small class="hint">Add more than one if you measure it different ways. A weight in g or oz can be logged in either.</small></div>' +
       '<label class="tick"><input type="checkbox" id="fdUsual"' + (fd.usual ? ' checked' : '') + '><span>Show in usuals</span></label>' +
       '<button type="button" class="btn primary wide" data-act="fd-save">Save</button>' +
       (fd.id ? '<button type="button" class="btn ghost wide" data-act="fd-archive">' + (fd.archived ? 'Bring back from archive' : 'Archive') + '</button>' : '');
@@ -1845,7 +1850,7 @@
       if (!Number.isFinite(grams) || grams < 0) { toast('Add the grams of protein.'); return; }
       const svAmount = parseFloat(qa.other.svAmount);
       if (!Number.isFinite(svAmount) || svAmount <= 0) { toast('Give the serving an amount, like 1 plate.'); return; }
-      if (!(qa.amount > 0)) { toast('How much was it? Add an amount.'); return; }
+      if (!(qa.amount > 0)) { toast('How much did you have? Add an amount.'); return; }
       const stamp = new Date().toISOString();
       const s = otherServing(), unit = shownUnit(qa.unit, s);
       const serving = { id: L.uid('s'), amount: s.amount, unit: s.unit, protein: s.protein };

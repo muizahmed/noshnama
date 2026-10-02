@@ -7,7 +7,7 @@
   'use strict';
 
   /* Bump on every release. index.html must reference each local asset as file?v=<this>. */
-  const APP_VERSION = '1.2.3';
+  const APP_VERSION = '1.2.4';
   /* Shape of the stored document. 2: servings are amount + unit, foods have an icon key, entries store amounts.
      3 (v1.2): entries may remember the weight unit she typed in (enteredUnit), day and week notes, keepsakes,
      and the seed Kabab is weighed in ounces (migrate() moves an untouched v2 Kabab over).
@@ -318,10 +318,12 @@
   const entryCount = (e) => countOf(e.amount, e.servingAmount);
   /* "2 x roti" for things counted by name, "525 ml" or "4 oz" for things measured. */
   const MEASURE = /^(g|kg|mg|ml|l|oz|lb|cup|cups|tbsp|tsp|glass|bowl|plate|slice|piece|handful|scoop|spoon)$/i;
+  /* Counted: the serving is one of something that is not a measuring word (1 roti, 1 egg). */
+  const isCounted = (e) => e.servingAmount === 1 && !MEASURE.test(e.unit);
   function entryLine(e) {
     const typed = otherWeight(e.enteredUnit, e.unit);
     if (typed) return fmtWeight(convertAmount(e.amount, e.unit, typed)) + ' ' + typed;
-    return e.servingAmount === 1 && !MEASURE.test(e.unit) ? fmtN(e.amount) + ' × ' + e.unit : fmtN(e.amount) + ' ' + e.unit;
+    return isCounted(e) ? fmtN(e.amount) + ' × ' + e.unit : fmtN(e.amount) + ' ' + e.unit;
   }
   function dayEntries(log, date) {
     return log.filter((e) => e.date === date).sort((a, b) =>
@@ -783,7 +785,7 @@
     mealOf, servingLabel, proteinFor, countOf, stepCount, stepWhole,
     OZ_IN_G, weightUnit, isWeight, convertAmount, fmtWeight, otherWeight, migrate, migrateFoods,
     defaultSettings, defaultMeta, seedFoods, newData, normalize, normLines,
-    makeEntry, entryCount, entryLine, dayEntries, sumProtein, dayTotal, groupByMeal,
+    makeEntry, entryCount, isCounted, entryLine, dayEntries, sumProtein, dayTotal, groupByMeal,
     totalsByDay, sumsByFood, sumsByCategory, sumsByMeal, countsByFood,
     goalState, usuals, reorderUsuals,
     daysBetween, weekStart, monthStart, monthEnd, addMonths, monthLabel, rangeLabel, dayList, firstDay, levelOf, summary, goalRuns,

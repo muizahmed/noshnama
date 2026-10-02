@@ -328,12 +328,14 @@ h1, h2, h3, p { margin: 0; font-weight: 400; }
 .stepper { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 2px; }
 .step { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--rose-deep); }
 .step .ico { width: 20px; height: 20px; }
-.stepper output { min-width: 46px; text-align: center; font-family: var(--serif); font-size: 26px; line-height: 1; }
 .qty-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.qty-or { font-size: 13px; color: var(--ink-soft); font-style: italic; font-family: var(--serif); font-size: 17px; }
-.amount { position: relative; flex: 1 1 126px; min-width: 126px; max-width: 190px; display: block; }
-.amount .input { padding-right: 62px; }
-.amount-unit { position: absolute; right: 14px; top: 0; height: 50px; display: flex; align-items: center; max-width: 54px; overflow: hidden; white-space: nowrap; font-size: 13.5px; color: var(--ink-soft); pointer-events: none; }
+/* the one amount control: - [number + unit] + in a single pill; the number is typed straight into it */
+.qty-row .stepper { flex: 1 1 172px; min-width: 0; max-width: 250px; }
+.stepper:has(.input:focus) { border-color: var(--rose); }
+.amount { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: minmax(52px, 1fr) minmax(0, 1fr); align-items: center; gap: 6px; cursor: text; }
+.amount .input { min-height: 44px; padding: 0; border: 0; border-radius: 0; background: none; text-align: right; font-family: var(--serif); font-size: 26px; line-height: 1; -moz-appearance: textfield; appearance: textfield; }
+.amount .input::-webkit-outer-spin-button, .amount .input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.amount-unit { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14.5px; color: var(--ink-soft); }
 .live { font-family: var(--serif); font-style: italic; font-size: 24px; color: var(--rose-deep); margin-top: 12px; }
 .tick { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 .tick input { width: 20px; height: 20px; accent-color: var(--rose); }
@@ -350,17 +352,27 @@ h1, h2, h3, p { margin: 0; font-weight: 400; }
 .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 4px; margin-top: 10px; padding: 10px; border: 1px solid var(--line); background: var(--card); border-radius: 20px; }
 .icon-cell { height: 46px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); }
 .icon-cell.icon-on { background: var(--blush); color: var(--rose-deep); }
-.serving-row { display: grid; grid-template-columns: minmax(58px, 0.8fr) minmax(0, 1.2fr) minmax(58px, 0.8fr) 44px; gap: 6px; align-items: center; margin-bottom: 6px; }
-.serving-row .input { padding-left: 12px; padding-right: 6px; }
-.serving-head { margin-bottom: 2px; }
-.serving-row.sv-solo { grid-template-columns: minmax(58px, 0.8fr) minmax(0, 1.2fr) minmax(58px, 0.8fr); }
+/* a serving reads as a sentence: [350] [ml] has [10] g protein, then the remove button in the food editor */
+.serving-row { display: grid; grid-template-columns: minmax(52px, 1fr) minmax(0, 1.45fr) auto minmax(52px, 1fr) auto 44px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.serving-row .input { padding-left: 11px; padding-right: 4px; }
+.serving-row.sv-solo { grid-template-columns: minmax(52px, 1fr) minmax(0, 1.45fr) auto minmax(52px, 1fr) auto; }
+.serving-row input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.serving-row input::-webkit-outer-spin-button, .serving-row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sv-word { font-size: 13.5px; color: var(--ink-soft); white-space: nowrap; }
+.serving-row .sv-x { grid-row: 1; grid-column: 6; }
+.sv-tag { grid-row: 2; grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-soft); margin: -1px 2px 4px; }
+/* narrow phones: the remove button drops under the sentence so the boxes keep their room */
+@media (max-width: 359px) {
+  .serving-row:not(.sv-solo) { grid-template-columns: minmax(52px, 1fr) minmax(0, 1.45fr) auto minmax(52px, 1fr) auto; }
+  .serving-row .sv-x { grid-row: 2; grid-column: 5; justify-self: end; }
+  .serving-row .sv-tag { grid-column: 1 / 5; margin: 0 2px; }
+}
 /* g / oz: a weight serving can be shown and typed in either */
 .unitsw { display: inline-flex; flex: 0 0 auto; margin-left: auto; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 2px; }
 .unitsw-btn { min-width: 44px; height: 44px; border-radius: 999px; font-size: 14px; color: var(--ink-soft); }
 .unitsw-on { background: var(--blush); color: var(--rose-deep); }
 .sv-weight { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: -2px 0 4px; font-size: 12.5px; color: var(--ink-soft); }
 .sv-weight .unitsw { margin-left: 0; }
-.serving-head i { font-style: normal; font-size: 12px; color: var(--ink-soft); padding-left: 4px; white-space: nowrap; }
 
 /* ---------- tab bar with the add button in the middle ---------- */
 .tabs {
@@ -413,7 +425,7 @@ h1, h2, h3, p { margin: 0; font-weight: 400; }
 .toast { pointer-events: none; display: flex; align-items: center; gap: 4px; max-width: 440px; min-height: 54px; padding: 5px 6px 5px 14px; border-radius: 28px; background: var(--ink); color: #FFF8F1; font-size: 14.5px; font-weight: 400; box-shadow: var(--shadow-strong); }
 .toast-ico { margin-right: 6px; opacity: 0.85; }
 .toast-ico .ico { width: 20px; height: 20px; }
-.toast-msg { padding: 6px 10px 6px 0; line-height: 1.25; }
+.toast-msg { padding: 6px 10px 6px 0; line-height: 1.25; text-wrap: pretty; }
 .toast-step { pointer-events: auto; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 248, 241, 0.12); color: #FFF8F1; }
 .toast-step .ico { width: 18px; height: 18px; }
 .toast-undo { pointer-events: auto; min-height: 44px; min-width: 58px; padding: 0 12px; border-radius: 999px; color: #F3D9A0; font-size: 14px; letter-spacing: 0.04em; }
