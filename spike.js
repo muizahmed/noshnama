@@ -154,5 +154,5 @@ window.addEventListener('load', () => {
     scope: SCOPES,
     callback: () => {},
   });
-  log('Ready');
+  log('Ready, v2, client ' + CLIENT_ID.slice(0, 12));
 });
