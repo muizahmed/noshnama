@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preload" href="fonts/outfit-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=1.2.1">
+<link rel="stylesheet" href="app.css?v=1.2.2">
 </head>
 <body>
 
@@ -22,7 +22,6 @@
   <header class="top">
     <div class="brand">Noshnama</div>
     <button id="pill" class="pill" data-act="pill" type="button"></button>
-    <button class="iconbtn" data-act="settings" type="button" aria-label="Settings" id="gear"></button>
   </header>
   <main>
     <div id="viewToday"></div>
@@ -32,11 +31,12 @@
   <nav class="tabs" aria-label="Sections">
     <div class="tab-group">
       <button type="button" class="tab" data-act="tab" data-tab="today"><span class="tab-ico" data-ico="today"></span><span>Today</span></button>
-      <button type="button" class="tab" data-act="tab" data-tab="stats"><span class="tab-ico" data-ico="stats"></span><span>Stats</span></button>
+      <button type="button" class="tab" data-act="tab" data-tab="foods"><span class="tab-ico" data-ico="foods"></span><span>Foods</span></button>
     </div>
     <button type="button" class="fab" data-act="fab" aria-label="Add"><span data-ico="plus"></span></button>
     <div class="tab-group">
-      <button type="button" class="tab" data-act="tab" data-tab="foods"><span class="tab-ico" data-ico="foods"></span><span>Foods</span></button>
+      <button type="button" class="tab" data-act="tab" data-tab="stats"><span class="tab-ico" data-ico="stats"></span><span>Stats</span></button>
+      <button type="button" class="tab" data-act="settings"><span class="tab-ico" data-ico="settings"></span><span>Settings</span></button>
     </div>
   </nav>
 </div>
@@ -55,8 +55,8 @@
 <noscript><p style="padding:24px;font-family:system-ui">Please turn on JavaScript to use Noshnama.</p></noscript>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="logic.js?v=1.2.1"></script>
-<script src="icons.js?v=1.2.1"></script>
-<script src="app.js?v=1.2.1"></script>
+<script src="logic.js?v=1.2.2"></script>
+<script src="icons.js?v=1.2.2"></script>
+<script src="app.js?v=1.2.2"></script>
 </body>
 </html>

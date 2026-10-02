@@ -1937,7 +1937,6 @@
 
   /* ================= start ================= */
   document.querySelectorAll('[data-ico]').forEach((el) => { el.innerHTML = ico(el.dataset.ico); });
-  $('#gear').innerHTML = ico('settings');
   if (L.num(storedSchema, L.SCHEMA) < L.SCHEMA) persist();
   /* keepsakes already earned by her history (for example on the first open of v1.2) join quietly */
   if (syncBadges().length) changed();
